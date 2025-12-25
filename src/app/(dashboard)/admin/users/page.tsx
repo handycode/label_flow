@@ -140,7 +140,7 @@ export default function UsersPage() {
             <h3 className="font-bold text-lg">添加用户</h3>
             <form onSubmit={createUser}>
               <div className="form-control mt-4">
-                <label className="label">
+                <label className="label w-16">
                   <span className="label-text">用户名</span>
                 </label>
                 <input
@@ -152,7 +152,7 @@ export default function UsersPage() {
                 />
               </div>
               <div className="form-control mt-4">
-                <label className="label">
+                <label className="label w-16">
                   <span className="label-text">邮箱</span>
                 </label>
                 <input
@@ -164,7 +164,7 @@ export default function UsersPage() {
                 />
               </div>
               <div className="form-control mt-4">
-                <label className="label">
+                <label className="label w-16">
                   <span className="label-text">密码</span>
                 </label>
                 <input
@@ -176,7 +176,7 @@ export default function UsersPage() {
                 />
               </div>
               <div className="form-control mt-4">
-                <label className="label">
+                <label className="label w-16">
                   <span className="label-text">角色</span>
                 </label>
                 <select
