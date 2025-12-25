@@ -1,0 +1,221 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==================== 用户与角色 ====================
+
+enum Role {
+  ADMIN    // 管理员
+  LABELER  // 标注员
+  CHECKER  // 质检员
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model User {
+  id           String     @id @default(cuid())
+  username     String     @unique
+  email        String     @unique
+  passwordHash String     @map("password_hash")
+  role         Role       @default(LABELER)
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  // 关系
+  createdPackages  TaskPackage[]   @relation("PackageCreator")
+  labeledTasks     Task[]          @relation("TaskLabeler")
+  checkedTasks     Task[]          @relation("TaskChecker")
+  annotations      Annotation[]
+  qualityScores    QualityScore[]
+  operationLogs    OperationLog[]
+
+  @@map("users")
+}
+
+// ==================== 媒体资源 ====================
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+model MediaResource {
+  id         String    @id @default(cuid())
+  s3Key      String    @unique @map("s3_key")
+  s3Url      String    @map("s3_url")
+  type       MediaType
+  fileName   String    @map("file_name")
+  fileSize   Int       @map("file_size")
+  duration   Float?    // 视频时长 (秒)
+  width      Int?
+  height     Int?
+  autoNumber Int       @unique @default(autoincrement()) @map("auto_number")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  // 关系
+  task Task?
+
+  @@index([autoNumber])
+  @@map("media_resources")
+}
+
+// ==================== 任务包与任务 ====================
+
+enum PackageStatus {
+  DRAFT      // 草稿
+  ACTIVE     // 进行中
+  COMPLETED  // 已完成
+  ARCHIVED   // 已归档
+}
+
+model TaskPackage {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  status      PackageStatus @default(DRAFT)
+  totalCount  Int           @default(0) @map("total_count")
+  createdById String        @map("created_by_id")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  // 关系
+  createdBy User   @relation("PackageCreator", fields: [createdById], references: [id])
+  tasks     Task[]
+
+  @@map("task_packages")
+}
+
+enum TaskStatus {
+  PENDING   // 未分配/待领取
+  LABELING  // 标注中
+  LABELED   // 已标注
+  CHECKING  // 质检中
+  APPROVED  // 质检通过
+  REJECTED  // 质检驳回
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  packageId   String     @map("package_id")
+  mediaId     String     @unique @map("media_id")
+  status      TaskStatus @default(PENDING)
+  labelerId   String?    @map("labeler_id")
+  checkerId   String?    @map("checker_id")
+  assignedAt  DateTime?  @map("assigned_at")
+  labeledAt   DateTime?  @map("labeled_at")
+  checkedAt   DateTime?  @map("checked_at")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  // 关系
+  package       TaskPackage    @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  media         MediaResource  @relation(fields: [mediaId], references: [id])
+  labeler       User?          @relation("TaskLabeler", fields: [labelerId], references: [id])
+  checker       User?          @relation("TaskChecker", fields: [checkerId], references: [id])
+  annotations   Annotation[]
+  metadata      TaskMetadata?
+  qualityScores QualityScore[]
+  operationLogs OperationLog[]
+
+  @@index([status])
+  @@index([labelerId])
+  @@index([checkerId])
+  @@index([packageId])
+  @@map("tasks")
+}
+
+// ==================== 标注数据 ====================
+
+enum AnnotationType {
+  RECT     // 矩形
+  ELLIPSE  // 椭圆
+}
+
+model Annotation {
+  id          String         @id @default(cuid())
+  taskId      String         @map("task_id")
+  type        AnnotationType
+  coordinates Json           // { x, y, width, height, rotation? }
+  label       String?
+  frameTime   Float?         @map("frame_time") // 视频帧时间点
+  createdById String         @map("created_by_id")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  // 关系
+  task      Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@index([taskId])
+  @@map("annotations")
+}
+
+// ==================== 任务元数据 ====================
+
+model TaskMetadata {
+  id           String   @id @default(cuid())
+  taskId       String   @unique @map("task_id")
+  remarks      String?  // 备注
+  issues       Json?    // 问题列表 ["issue1", "issue2"]
+  videoClips   Json?    @map("video_clips") // 视频截取片段
+  croppedAreas Json?    @map("cropped_areas") // 画面裁切区域
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // 关系
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("task_metadata")
+}
+
+// ==================== 质量评分 ====================
+
+model QualityScore {
+  id          String   @id @default(cuid())
+  taskId      String   @map("task_id")
+  score       Int      // 1-5 分
+  feedback    String?
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // 关系
+  task      Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@index([taskId])
+  @@map("quality_scores")
+}
+
+// ==================== 操作日志 ====================
+
+model OperationLog {
+  id        String   @id @default(cuid())
+  taskId    String   @map("task_id")
+  userId    String   @map("user_id")
+  action    String   // claim, submit, approve, reject, etc.
+  oldStatus String?  @map("old_status")
+  newStatus String?  @map("new_status")
+  details   Json?    // 额外信息
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // 关系
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@index([userId])
+  @@map("operation_logs")
+}
