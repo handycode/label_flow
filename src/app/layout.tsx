@@ -4,8 +4,8 @@ import '../styles/globals.css'
 import MediaPreview from '@/components/MediaPreview'
 
 export const metadata: Metadata = {
-  title: '学生记录',
-  description: '基于Next.js的学生记录媒体资源遍历系统',
+  title: 'Label Flow',
+  description: '基于Next.js的标注任务管理系统',
 }
 
 export default function RootLayout({
