@@ -10,6 +10,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     redirect('/login')
   }
 
+  // 检查用户账户是否被停用
+  if (session.status !== 'ACTIVE') {
+    redirect('/login')
+  }
+
   return (
     <div className="min-h-screen bg-base-200">
       <DashboardNav user={session} />

@@ -29,6 +29,12 @@ export default function LoginPage() {
         return
       }
 
+      // 检查用户状态
+      if (data.data.user.status !== 'ACTIVE') {
+        setError('您的账号已被停用，请联系管理员')
+        return
+      }
+
       // 根据角色跳转到不同页面
       const role = data.data.user.role
       if (role === 'ADMIN') {

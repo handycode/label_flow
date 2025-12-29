@@ -31,24 +31,42 @@ export function getMediaType(key: string): 'image' | 'video' | 'other' {
 }
 
 export async function listS3Objects(prefix?: string): Promise<S3Object[]> {
-  const command = new ListObjectsV2Command({
-    Bucket: BUCKET_NAME,
-    Prefix: prefix,
-  })
+  const allObjects: S3Object[] = []
+  let continuationToken: string | undefined = undefined
 
-  const response = await s3Client.send(command)
+  // 使用分页循环获取所有对象
+  do {
+    const command: ListObjectsV2Command = new ListObjectsV2Command({
+      Bucket: BUCKET_NAME,
+      Prefix: prefix,
+      ContinuationToken: continuationToken,
+    })
 
-  if (!response.Contents) return []
+    const response = await s3Client.send(command)
 
-  return response.Contents
-    .filter((item) => item.Key && item.Size && item.Size > 0)
-    .map((item) => ({
-      key: item.Key!,
-      size: item.Size!,
-      lastModified: item.LastModified || new Date(),
-      type: getMediaType(item.Key!),
-    }))
-    .filter((item) => item.type !== 'other')
+    if (response.Contents) {
+      const objects = response.Contents
+        .filter((item: any) => item.Key && item.Size && item.Size > 0)
+        .map((item: any) => ({
+          key: item.Key!,
+          size: item.Size!,
+          lastModified: item.LastModified || new Date(),
+          type: getMediaType(item.Key!),
+        }))
+        .filter((item: S3Object) => item.type !== 'other')
+
+      allObjects.push(...objects)
+    }
+
+    // 检查是否有更多数据
+    if (response.IsTruncated && (response as any).NextContinuationToken) {
+      continuationToken = (response as any).NextContinuationToken
+    } else {
+      break
+    }
+  } while (true)
+
+  return allObjects
 }
 
 export async function getPresignedUrl(key: string, expiresIn = 3600): Promise<string> {

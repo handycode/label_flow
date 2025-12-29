@@ -1,68 +1,86 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import Pagination from '@/components/Pagination'
+import toast from '@/components/ui/Toast'
 
-interface Task {
+interface Package {
   id: string;
-  status: string;
-  media: {
-    id: string;
-    fileName: string;
-    type: string;
-    autoNumber: number;
-  };
-  package: { id: string; name: string };
-  _count: { annotations: number };
+  name: string;
+  description: string;
+  totalCount: number;
+  completedCount: number;
+  createdBy: { username: string };
+  createdAt: string;
+  pendingCount?: number;
+  labelingCount?: number;
+  labeledCount?: number;
+  rejectedCount?: number;
+  _count: { tasks: number };
 }
 
 export default function LabelerWorkspacePage() {
-  const [tasks, setTasks] = useState<Task[]>([])
+  const [packages, setPackages] = useState<Package[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'available' | 'my'>('available')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const pageSize = 12
 
   useEffect(() => {
-    const fetchTasks = async () => {
+    const fetchPackages = async () => {
+      setLoading(true)
       try {
-        const res = await fetch(`/api/tasks${filter === 'available' ? '?status=PENDING' : ''}`)
+        const url = `/api/packages?page=${currentPage}&pageSize=${pageSize}&filter=${filter}`
+        const res = await fetch(url)
         const data = await res.json()
         if (data.success) {
-          setTasks(data.data.items)
+          setPackages(data.data.items)
+          setTotalPages(data.data.totalPages)
         }
       } catch (error) {
-        console.error('Failed to fetch tasks:', error)
+        console.error('Failed to fetch packages:', error)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchTasks()
-  }, [filter])
+    fetchPackages()
+  }, [filter, currentPage])
 
-
-  const claimTask = async (taskId: string) => {
+  const claimPackage = async (packageId: string) => {
     try {
-      const res = await fetch(`/api/tasks/${taskId}/claim`, { method: 'POST' })
+      const res = await fetch(`/api/packages/${packageId}/claim`, { method: 'POST' })
       const data = await res.json()
       if (data.success) {
-        // 跳转到标注页面
-        window.location.href = `/labeler/workspace/${taskId}`
+        toast.success(data.data.message)
+        // Refresh the package list
+        setTimeout(() => {
+          window.location.reload()
+        }, 1000)
       } else {
-        alert(data.error)
+        toast.error(data.error || '领取失败')
       }
     } catch (error) {
-      console.error('Failed to claim task:', error)
+      console.error('Failed to claim package:', error)
+      toast.error('领取失败')
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    const badges: Record<string, string> = {
-      PENDING: 'badge-ghost',
-      LABELING: 'badge-info',
-      LABELED: 'badge-success',
-      REJECTED: 'badge-error',
+  const getFirstTask = async (packageId: string) => {
+    try {
+      const res = await fetch(`/api/tasks?packageId=${packageId}&myTasks=true&pageSize=1`)
+      const data = await res.json()
+      if (data.success && data.data.items.length > 0) {
+        const taskId = data.data.items[0].id
+        window.location.href = `/labeler/workspace/${taskId}`
+      } else {
+        toast.error('没有找到可标注的任务')
+      }
+    } catch (error) {
+      console.error('Failed to get first task:', error)
+      toast.error('获取任务失败')
     }
-    return badges[status] || 'badge-ghost'
   }
 
   if (loading) {
@@ -80,65 +98,116 @@ export default function LabelerWorkspacePage() {
         <div className="tabs tabs-boxed">
           <button
             className={`tab ${filter === 'available' ? 'tab-active' : ''}`}
-            onClick={() => setFilter('available')}
+            onClick={() => {
+              setFilter('available')
+              setCurrentPage(1)
+            }}
           >
-            可领取任务
+            可领取任务包
           </button>
           <button
             className={`tab ${filter === 'my' ? 'tab-active' : ''}`}
-            onClick={() => setFilter('my')}
+            onClick={() => {
+              setFilter('my')
+              setCurrentPage(1)
+            }}
           >
-            我的任务
+            我的任务包
           </button>
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {tasks.map((task) => (
-          <div key={task.id} className="card bg-base-100 shadow-xl">
-            <div className="card-body">
-              <h2 className="card-title">
-                #{task.media.autoNumber} {task.media.fileName}
-                <span className={`badge ${getStatusBadge(task.status)}`}>
-                  {task.status}
-                </span>
-              </h2>
-              <p className="text-base-content/60">
-                任务包: {task.package.name}
-              </p>
-              <p className="text-sm">
-                类型: <span className="badge badge-sm">{task.media.type}</span>
-              </p>
+        {packages.map((pkg) => {
+          const hasClaimableTasks = (pkg.pendingCount || 0) + (pkg.rejectedCount || 0) > 0
+          const hasWorkingTasks = (pkg.labelingCount || 0) > 0
 
-              <div className="card-actions justify-end mt-4">
-                {task.status === 'PENDING' || task.status === 'REJECTED' ? (
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={() => claimTask(task.id)}
-                  >
-                    领取任务
-                  </button>
-                ) : task.status === 'LABELING' ? (
-                  <Link
-                    href={`/labeler/workspace/${task.id}`}
-                    className="btn btn-primary btn-sm"
-                  >
-                    继续标注
-                  </Link>
-                ) : (
-                  <span className="text-sm text-base-content/60">已完成</span>
+          return (
+            <div key={pkg.id} className="card bg-base-100 shadow-xl">
+              <div className="card-body">
+                <h2 className="card-title">{pkg.name}</h2>
+                {pkg.description && (
+                  <p className="text-sm text-base-content/60">{pkg.description}</p>
                 )}
+
+                <div className="stats stats-vertical shadow mt-2">
+                  <div className="stat py-2">
+                    <div className="stat-title text-xs">任务总数</div>
+                    <div className="stat-value text-2xl">{pkg._count.tasks}</div>
+                  </div>
+                  {filter === 'available' && (
+                    <>
+                      <div className="stat py-2">
+                        <div className="stat-title text-xs">待领取</div>
+                        <div className="stat-value text-2xl text-warning">
+                          {(pkg.pendingCount || 0) + (pkg.rejectedCount || 0)}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  {filter === 'my' && (
+                    <>
+                      <div className="stat py-2">
+                        <div className="stat-title text-xs">标注中</div>
+                        <div className="stat-value text-2xl text-info">
+                          {pkg.labelingCount || 0}
+                        </div>
+                      </div>
+                      <div className="stat py-2">
+                        <div className="stat-title text-xs">已完成</div>
+                        <div className="stat-value text-2xl text-success">
+                          {pkg.labeledCount || 0}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="card-actions justify-end mt-4">
+                  {filter === 'available' && hasClaimableTasks && (
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => claimPackage(pkg.id)}
+                    >
+                      领取任务包
+                    </button>
+                  )}
+                  {filter === 'my' && hasWorkingTasks && (
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => getFirstTask(pkg.id)}
+                    >
+                      继续标注
+                    </button>
+                  )}
+                  {filter === 'available' && !hasClaimableTasks && (
+                    <span className="text-sm text-base-content/60">暂无可领取任务</span>
+                  )}
+                  {filter === 'my' && !hasWorkingTasks && (
+                    <span className="text-sm text-base-content/60">已完成</span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
-      {tasks.length === 0 && (
+      {packages.length === 0 && (
         <div className="text-center py-12">
           <p className="text-base-content/60">
-            {filter === 'available' ? '暂无可领取的任务' : '暂无进行中的任务'}
+            {filter === 'available' ? '暂无可领取的任务包' : '暂无进行中的任务包'}
           </p>
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-6">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </div>
       )}
     </div>

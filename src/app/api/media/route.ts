@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getMediaType, listS3Objects } from '@/lib/s3'
+import { listS3Objects } from '@/lib/s3'
 import { requireRole } from '@/lib/auth'
 import { Role } from '@/types'
 
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/media/sync - 同步 S3 媒体资源
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     await requireRole([Role.ADMIN])
 

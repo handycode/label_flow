@@ -52,6 +52,7 @@ export interface AuthPayload {
   username: string;
   email: string;
   role: Role;
+  status: UserStatus;
 }
 
 export interface SessionUser {
@@ -59,4 +60,5 @@ export interface SessionUser {
   username: string;
   email: string;
   role: Role;
+  status: UserStatus;
 }

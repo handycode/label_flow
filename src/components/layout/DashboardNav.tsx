@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import type { SessionUser } from '@/types'
+import { cn } from '@/lib/utils'
 
 interface Props {
   user: SessionUser;
@@ -42,17 +43,23 @@ export default function DashboardNav({ user }: Props) {
 
   return (
     <div className="navbar bg-base-100 shadow-lg">
-      <div className="flex-1">
-        <Link href="/" className="btn btn-ghost text-xl">
-          Label Flow
-        </Link>
-        <div className="hidden md:flex ml-4">
-          <ul className="menu menu-horizontal px-1">
+      <div className="navbar-start">
+        <div className="dropdown">
+          <div tabIndex={0} role="button" className="btn btn-ghost lg:hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h8m-8 6h16" />
+            </svg>
+          </div>
+          <ul
+            tabIndex={-1}
+            className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow gap-2">
             {navItems.map((item) => (
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={pathname.startsWith(item.href) ? 'active' : ''}
+                  className={cn('py-2 text-lg', { 'menu-active': pathname.startsWith(item.href) })}
                 >
                   {item.label}
                 </Link>
@@ -60,12 +67,29 @@ export default function DashboardNav({ user }: Props) {
             ))}
           </ul>
         </div>
+        <Link href="/" className="btn btn-ghost text-xl">
+          Label Flow
+        </Link>
       </div>
-      <div className="flex-none gap-2">
+      <div className="navbar-center hidden lg:flex">
+        <ul className="menu menu-horizontal gap-2">
+          {navItems.map((item) => (
+            <li key={item.href} className="item">
+              <Link href={item.href}
+                className={cn('py-1 text-lg', { 'menu-active': pathname.startsWith(item.href) })}
+              >
+                {item.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="navbar-end gap-2">
         <div className="dropdown dropdown-end">
           <div tabIndex={0} role="button" className="btn btn-ghost">
             <div className="flex items-center gap-2">
-              <span className="badge badge-primary">{user.role}</span>
+              <span className="badge badge-xs badge-primary">{user.role}</span>
               <span>{user.username}</span>
             </div>
           </div>

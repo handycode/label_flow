@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createSession, destroySession, hashPassword, signToken, verifyPassword } from '@/lib/auth'
+import { createSession, verifyPassword } from '@/lib/auth'
 import type { AuthPayload, LoginInput, Role } from '@/types'
 
 // POST /api/auth/login
@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
       username: user.username,
       email: user.email,
       role: user.role as Role,
+      status: user.status as any,
     }
 
     const token = await createSession(payload)
@@ -60,6 +61,7 @@ export async function POST(request: NextRequest) {
           username: user.username,
           email: user.email,
           role: user.role,
+          status: user.status,
         },
       },
     })

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getSession, requireAuth } from '@/lib/auth'
-import { Role, TaskStatus } from '@/types'
+import { requireAuth } from '@/lib/auth'
+import { Role } from '@/types'
 
 // GET /api/tasks - 获取任务列表 (根据角色过滤)
 export async function GET(request: NextRequest) {
@@ -13,11 +13,19 @@ export async function GET(request: NextRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '10')
     const status = searchParams.get('status')
     const packageId = searchParams.get('packageId')
+    const myTasks = searchParams.get('myTasks') === 'true'
 
     const where: Record<string, unknown> = {}
 
     // 根据角色过滤任务
-    if (session.role === Role.LABELER) {
+    if (myTasks) {
+      // 明确请求"我的任务"，只返回当前用户已领取的
+      if (session.role === Role.LABELER) {
+        where.labelerId = session.id
+      } else if (session.role === Role.CHECKER) {
+        where.checkerId = session.id
+      }
+    } else if (session.role === Role.LABELER) {
       // 标注员只能看到待领取的任务或自己领取的任务
       where.OR = [
         { status: 'PENDING' },

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Pagination from '@/components/Pagination'
 
 interface User {
   id: string;
@@ -18,20 +19,36 @@ interface User {
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
+  const pageSize = 10
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
   const [newUser, setNewUser] = useState({
     username: '',
     email: '',
     password: '',
     role: 'LABELER',
   })
+  const [editForm, setEditForm] = useState({
+    username: '',
+    email: '',
+    password: '',
+    role: '',
+    status: '',
+  })
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (page: number = 1) => {
     try {
-      const res = await fetch('/api/users')
+      const res = await fetch(`/api/users?page=${page}&pageSize=${pageSize}`)
       const data = await res.json()
       if (data.success) {
         setUsers(data.data.items)
+        setCurrentPage(data.data.page)
+        setTotalPages(data.data.totalPages)
+        setTotal(data.data.total)
       }
     } catch (error) {
       console.error('Failed to fetch users:', error)
@@ -56,7 +73,7 @@ export default function UsersPage() {
       if (data.success) {
         setShowCreateModal(false)
         setNewUser({ username: '', email: '', password: '', role: 'LABELER' })
-        fetchUsers()
+        fetchUsers(currentPage)
       } else {
         alert(data.error)
       }
@@ -72,6 +89,49 @@ export default function UsersPage() {
       CHECKER: 'badge-success',
     }
     return badges[role] || 'badge-ghost'
+  }
+
+  const openEditModal = (user: User) => {
+    setEditingUser(user)
+    setEditForm({
+      username: user.username,
+      email: user.email,
+      password: '',
+      role: user.role,
+      status: user.status,
+    })
+    setShowEditModal(true)
+  }
+
+  const editUser = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingUser) return
+
+    try {
+      const updateData: Record<string, unknown> = {}
+      if (editForm.username !== editingUser.username) updateData.username = editForm.username
+      if (editForm.email !== editingUser.email) updateData.email = editForm.email
+      if (editForm.password) updateData.password = editForm.password
+      if (editForm.role !== editingUser.role) updateData.role = editForm.role
+      if (editForm.status !== editingUser.status) updateData.status = editForm.status
+
+      const res = await fetch(`/api/users/${editingUser.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setShowEditModal(false)
+        setEditingUser(null)
+        fetchUsers(currentPage)
+      } else {
+        alert(data.error)
+      }
+    } catch (error) {
+      console.error('Failed to update user:', error)
+      alert('更新用户失败')
+    }
   }
 
   if (loading) {
@@ -113,24 +173,41 @@ export default function UsersPage() {
                 <td>{user.username}</td>
                 <td>{user.email}</td>
                 <td>
-                  <span className={`badge ${getRoleBadge(user.role)}`}>
+                  <span className={`badge badge-sm ${getRoleBadge(user.role)}`}>
                     {user.role}
                   </span>
                 </td>
                 <td>
-                  <span className={`badge ${user.status === 'ACTIVE' ? 'badge-success' : 'badge-warning'}`}>
+                  <span className={`badge badge-sm ${user.status === 'ACTIVE' ? 'badge-success' : 'badge-warning'}`}>
                     {user.status}
                   </span>
                 </td>
                 <td>{user._count.labeledTasks}</td>
                 <td>{user._count.checkedTasks}</td>
                 <td>
-                  <button className="btn btn-ghost btn-xs">编辑</button>
+                  <button
+                    className="btn btn-primary btn-outline btn-sm"
+                    onClick={() => openEditModal(user)}
+                  >
+                    编辑
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* 分页 */}
+      <div className="flex justify-between items-center mt-6">
+        <div className="text-sm text-base-content/60">
+          共 {total} 条记录，每页 {pageSize} 条
+        </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={(page) => fetchUsers(page)}
+        />
       </div>
 
       {/* 创建用户 Modal */}
@@ -195,6 +272,89 @@ export default function UsersPage() {
                 </button>
                 <button type="submit" className="btn btn-primary">
                   创建
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 编辑用户 Modal */}
+      {showEditModal && editingUser && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg">编辑用户</h3>
+            <form onSubmit={editUser}>
+              <div className="form-control mt-4">
+                <label className="label w-16">
+                  <span className="label-text">用户名</span>
+                </label>
+                <input
+                  type="text"
+                  className="input input-bordered"
+                  value={editForm.username}
+                  onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-control mt-4">
+                <label className="label w-16">
+                  <span className="label-text">邮箱</span>
+                </label>
+                <input
+                  type="email"
+                  className="input input-bordered"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-control mt-4">
+                <label className="label w-16">
+                  <span className="label-text">密码</span>
+                </label>
+                <input
+                  type="password"
+                  className="input input-bordered"
+                  value={editForm.password}
+                  placeholder="留空不修改"
+                  onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                />
+              </div>
+              <div className="form-control mt-4">
+                <label className="label w-16">
+                  <span className="label-text">角色</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={editForm.role}
+                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                >
+                  <option value="LABELER">标注员</option>
+                  <option value="CHECKER">质检员</option>
+                  <option value="ADMIN">管理员</option>
+                </select>
+              </div>
+              <div className="form-control mt-4">
+                <label className="label w-16">
+                  <span className="label-text">状态</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={editForm.status}
+                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                >
+                  <option value="ACTIVE">激活</option>
+                  <option value="INACTIVE">未激活</option>
+                  <option value="SUSPENDED">停用</option>
+                </select>
+              </div>
+              <div className="modal-action">
+                <button type="button" className="btn" onClick={() => setShowEditModal(false)}>
+                  取消
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  保存
                 </button>
               </div>
             </form>

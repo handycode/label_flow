@@ -32,6 +32,7 @@ export async function getSession(): Promise<SessionUser | null> {
     username: payload.username,
     email: payload.email,
     role: payload.role as Role,
+    status: payload.status as any,
   }
 }
 
