@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import '@/config'
 import '../styles/globals.css'
 import MediaPreview from '@/components/MediaPreview'
+import AuthProvider from '@/components/AuthProvider'
 
 export const metadata: Metadata = {
   title: 'Label Flow',
@@ -16,7 +17,9 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" data-theme="light">
       <body>
-        <MediaPreview>{children}</MediaPreview>
+        <AuthProvider>
+          <MediaPreview>{children}</MediaPreview>
+        </AuthProvider>
       </body>
     </html>
   )
