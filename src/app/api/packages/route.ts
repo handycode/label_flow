@@ -6,15 +6,58 @@ import { Role } from '@/types'
 // GET /api/packages - 获取任务包列表
 export async function GET(request: NextRequest) {
   try {
-    await requireRole([Role.ADMIN])
+    const session = await requireRole([Role.ADMIN, Role.LABELER, Role.CHECKER])
 
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
     const pageSize = parseInt(searchParams.get('pageSize') || '10')
     const status = searchParams.get('status')
+    const filter = searchParams.get('filter') // 'available' | 'my'
+    const role = session.role
 
     const where: Record<string, unknown> = {}
     if (status) where.status = status
+
+    // Build query based on role and filter
+    let taskFilter: any = {}
+
+    if (role === Role.LABELER) {
+      if (filter === 'my') {
+        // My packages: packages where I'm the labeler
+        taskFilter = {
+          some: {
+            labelerId: session.id,
+            status: { in: ['LABELING', 'LABELED', 'REJECTED'] }
+          }
+        }
+      } else {
+        // Available packages: packages with PENDING or REJECTED tasks
+        taskFilter = {
+          some: {
+            status: { in: ['PENDING', 'REJECTED'] }
+          }
+        }
+      }
+      where.tasks = taskFilter
+    } else if (role === Role.CHECKER) {
+      if (filter === 'my') {
+        // My packages: packages where I'm the checker
+        taskFilter = {
+          some: {
+            checkerId: session.id,
+            status: { in: ['CHECKING', 'APPROVED'] }
+          }
+        }
+      } else {
+        // Available packages: packages with LABELED tasks
+        taskFilter = {
+          some: {
+            status: 'LABELED'
+          }
+        }
+      }
+      where.tasks = taskFilter
+    }
 
     const [packages, total] = await Promise.all([
       prisma.taskPackage.findMany({
