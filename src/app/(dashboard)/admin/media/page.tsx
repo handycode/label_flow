@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Pagination from '@/components/Pagination'
 
 interface MediaResource {
   id: string;
@@ -16,13 +17,20 @@ export default function MediaPage() {
   const [media, setMedia] = useState<MediaResource[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
+  const pageSize = 20
 
-  const fetchMedia = async () => {
+  const fetchMedia = async (page: number = 1) => {
     try {
-      const res = await fetch('/api/media')
+      const res = await fetch(`/api/media?page=${page}&pageSize=${pageSize}`)
       const data = await res.json()
       if (data.success) {
         setMedia(data.data.items)
+        setCurrentPage(data.data.page)
+        setTotalPages(data.data.totalPages)
+        setTotal(data.data.total)
       }
     } catch (error) {
       console.error('Failed to fetch media:', error)
@@ -42,7 +50,7 @@ export default function MediaPage() {
       const data = await res.json()
       if (data.success) {
         alert(`同步完成：新增 ${data.data.created} 个，跳过 ${data.data.skipped} 个`)
-        fetchMedia()
+        fetchMedia(1)
       }
     } catch (error) {
       console.error('Failed to sync media:', error)
@@ -96,7 +104,7 @@ export default function MediaPage() {
                 <td>{item.autoNumber}</td>
                 <td className="max-w-xs truncate">{item.fileName}</td>
                 <td>
-                  <span className={`badge ${item.type === 'IMAGE' ? 'badge-info' : 'badge-secondary'}`}>
+                  <span className={`badge badge-sm ${item.type === 'IMAGE' ? 'badge-info' : 'badge-secondary'}`}>
                     {item.type}
                   </span>
                 </td>
@@ -109,12 +117,24 @@ export default function MediaPage() {
                   )}
                 </td>
                 <td>
-                  <button className="btn btn-ghost btn-xs">预览</button>
+                  <button className="btn btn-primary btn-outline btn-sm">预览</button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* 分页 */}
+      <div className="flex justify-between items-center mt-6">
+        <div className="text-sm text-base-content/60">
+          共 {total} 条记录，每页 {pageSize} 条
+        </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={(page) => fetchMedia(page)}
+        />
       </div>
 
       {media.length === 0 && (

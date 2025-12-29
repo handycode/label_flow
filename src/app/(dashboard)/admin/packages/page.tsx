@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Pagination from '@/components/Pagination'
 
 interface TaskPackage {
   id: string;
@@ -22,15 +23,22 @@ interface TaskPackage {
 export default function PackagesPage() {
   const [packages, setPackages] = useState<TaskPackage[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
+  const pageSize = 9
   const [_showCreateModal, setShowCreateModal] = useState(false)
 
 
-  const fetchPackages = async () => {
+  const fetchPackages = async (page: number = 1) => {
     try {
-      const res = await fetch('/api/packages')
+      const res = await fetch(`/api/packages?page=${page}&pageSize=${pageSize}`)
       const data = await res.json()
       if (data.success) {
         setPackages(data.data.items)
+        setCurrentPage(data.data.page)
+        setTotalPages(data.data.totalPages)
+        setTotal(data.data.total)
       }
     } catch (error) {
       console.error('Failed to fetch packages:', error)
@@ -109,6 +117,18 @@ export default function PackagesPage() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* 分页 */}
+      <div className="flex justify-between items-center mt-6">
+        <div className="text-sm text-base-content/60">
+          共 {total} 个任务包，每页 {pageSize} 个
+        </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={(page) => fetchPackages(page)}
+        />
       </div>
 
       {packages.length === 0 && (

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Pagination from '@/components/Pagination'
 
 interface User {
   id: string;
@@ -18,6 +19,10 @@ interface User {
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
+  const pageSize = 10
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
@@ -35,12 +40,15 @@ export default function UsersPage() {
     status: '',
   })
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (page: number = 1) => {
     try {
-      const res = await fetch('/api/users')
+      const res = await fetch(`/api/users?page=${page}&pageSize=${pageSize}`)
       const data = await res.json()
       if (data.success) {
         setUsers(data.data.items)
+        setCurrentPage(data.data.page)
+        setTotalPages(data.data.totalPages)
+        setTotal(data.data.total)
       }
     } catch (error) {
       console.error('Failed to fetch users:', error)
@@ -65,7 +73,7 @@ export default function UsersPage() {
       if (data.success) {
         setShowCreateModal(false)
         setNewUser({ username: '', email: '', password: '', role: 'LABELER' })
-        fetchUsers()
+        fetchUsers(currentPage)
       } else {
         alert(data.error)
       }
@@ -116,7 +124,7 @@ export default function UsersPage() {
       if (data.success) {
         setShowEditModal(false)
         setEditingUser(null)
-        fetchUsers()
+        fetchUsers(currentPage)
       } else {
         alert(data.error)
       }
@@ -178,7 +186,7 @@ export default function UsersPage() {
                 <td>{user._count.checkedTasks}</td>
                 <td>
                   <button
-                    className="btn btn-primary btn-outline"
+                    className="btn btn-primary btn-outline btn-sm"
                     onClick={() => openEditModal(user)}
                   >
                     编辑
@@ -188,6 +196,18 @@ export default function UsersPage() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* 分页 */}
+      <div className="flex justify-between items-center mt-6">
+        <div className="text-sm text-base-content/60">
+          共 {total} 条记录，每页 {pageSize} 条
+        </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={(page) => fetchUsers(page)}
+        />
       </div>
 
       {/* 创建用户 Modal */}
