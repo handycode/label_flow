@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GetObjectCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
-const REGION = process.env.REGION || 'ap-southeast-2'
-const BUCKET_NAME = process.env.BUCKET_NAME || 'interviewonly'
+const REGION = process.env.AWS_REGION || 'ap-southeast-2'
+const BUCKET_NAME = process.env.AWS_BUCKET_NAME || 'interviewonly'
 
-const ACCESS_KEY_ID = process.env.ACCESS_KEY_ID || ''
-const SECRET_ACCESS_KEY = process.env.SECRET_ACCESS_KEY || ''
+const ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID || ''
+const SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY || ''
 
 function getS3Client() {
   if (!REGION || !BUCKET_NAME || !ACCESS_KEY_ID || !SECRET_ACCESS_KEY) {
