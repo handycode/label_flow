@@ -2,13 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth/jwt'
 
 export async function proxy(request: NextRequest) {
-  console.log('sss')
   // 排除需要跳过的路径
   const publicPaths = ['/login', '/api/auth/login']
   if (publicPaths.some(path => request.nextUrl.pathname.startsWith(path))) {
     return NextResponse.next()
   }
-  console.log(publicPaths)
 
   // 如果访问首页，检查认证并重定向
   if (request.nextUrl.pathname === '/') {
