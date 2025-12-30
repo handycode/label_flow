@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import Pagination from '@/components/Pagination'
 import toast from '@/components/ui/Toast'
 
@@ -16,13 +17,14 @@ interface Package {
   labelingCount?: number;
   labeledCount?: number;
   rejectedCount?: number;
+  approvedCount?: number;
   _count: { tasks: number };
 }
 
 export default function LabelerWorkspacePage() {
   const [packages, setPackages] = useState<Package[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'available' | 'my'>('available')
+  const [filter, setFilter] = useState<'available' | 'my'>('my')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const pageSize = 12
@@ -69,11 +71,11 @@ export default function LabelerWorkspacePage() {
 
   const getFirstTask = async (packageId: string) => {
     try {
-      const res = await fetch(`/api/tasks?packageId=${packageId}&myTasks=true&pageSize=1`)
+      const res = await fetch(`/api/tasks?packageId=${packageId}&myTasks=true&pageSize=1&status=LABELING`)
       const data = await res.json()
       if (data.success && data.data.items.length > 0) {
         const taskId = data.data.items[0].id
-        window.location.href = `/labeler/workspace/${taskId}`
+        window.location.href = `/labeler/workspace/task/${taskId}`
       } else {
         toast.error('没有找到可标注的任务')
       }
@@ -97,15 +99,6 @@ export default function LabelerWorkspacePage() {
         <h1 className="text-2xl font-bold">标注工作台</h1>
         <div className="tabs tabs-boxed">
           <button
-            className={`tab ${filter === 'available' ? 'tab-active' : ''}`}
-            onClick={() => {
-              setFilter('available')
-              setCurrentPage(1)
-            }}
-          >
-            可领取任务包
-          </button>
-          <button
             className={`tab ${filter === 'my' ? 'tab-active' : ''}`}
             onClick={() => {
               setFilter('my')
@@ -113,6 +106,15 @@ export default function LabelerWorkspacePage() {
             }}
           >
             我的任务包
+          </button>
+          <button
+            className={`tab ${filter === 'available' ? 'tab-active' : ''}`}
+            onClick={() => {
+              setFilter('available')
+              setCurrentPage(1)
+            }}
+          >
+            可领取任务包
           </button>
         </div>
       </div>
@@ -156,7 +158,7 @@ export default function LabelerWorkspacePage() {
                       <div className="stat py-2">
                         <div className="stat-title text-xs">已完成</div>
                         <div className="stat-value text-2xl text-success">
-                          {pkg.labeledCount || 0}
+                          {(pkg.labeledCount || 0) + (pkg.approvedCount || 0)}
                         </div>
                       </div>
                     </>
@@ -172,13 +174,23 @@ export default function LabelerWorkspacePage() {
                       领取任务包
                     </button>
                   )}
-                  {filter === 'my' && hasWorkingTasks && (
-                    <button
-                      className="btn btn-primary btn-sm"
-                      onClick={() => getFirstTask(pkg.id)}
-                    >
-                      继续标注
-                    </button>
+                  {filter === 'my' && (
+                    <>
+                      <Link
+                        href={`/labeler/workspace/package/${pkg.id}`}
+                        className="btn btn-outline btn-sm"
+                      >
+                        查看任务列表
+                      </Link>
+                      {hasWorkingTasks && (
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => getFirstTask(pkg.id)}
+                        >
+                          继续标注
+                        </button>
+                      )}
+                    </>
                   )}
                   {filter === 'available' && !hasClaimableTasks && (
                     <span className="text-sm text-base-content/60">暂无可领取任务</span>

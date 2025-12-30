@@ -2,12 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { getPresignedUrl } from '@/lib/s3'
 
-interface RouteParams {
-  params: Promise<{ key: string }>;
-}
-
 // GET /api/media/presigned/:key - 获取预签名 URL
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ key: string }> }) {
   try {
     await requireAuth()
     const { key } = await params

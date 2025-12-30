@@ -84,7 +84,6 @@ export interface TaskMetadata {
   id: string;
   taskId: string;
   remarks?: string | null;
-  issues?: string[] | null;
   videoClips?: VideoClip[] | null;
   croppedAreas?: CropArea[] | null;
   createdAt: Date;
@@ -116,7 +115,6 @@ export interface QualityScore {
   id: string;
   taskId: string;
   score: number; // 1-5
-  feedback?: string | null;
   createdById: string;
   createdAt: Date;
 }
@@ -149,7 +147,6 @@ export interface TaskSubmitInput {
   annotations: Annotation[];
   metadata?: {
     remarks?: string;
-    issues?: string[];
     videoClips?: VideoClip[];
     croppedAreas?: CropArea[];
   };
@@ -157,6 +154,5 @@ export interface TaskSubmitInput {
 
 export interface TaskReviewInput {
   score: number;
-  feedback?: string;
   approved: boolean;
 }

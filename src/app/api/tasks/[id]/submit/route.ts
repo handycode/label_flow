@@ -3,12 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/auth'
 import { Role } from '@/types'
 
-interface RouteParams {
-  params: Promise<{ id: string }>;
-}
-
 // POST /api/tasks/:id/submit - 提交标注
-export async function POST(request: NextRequest, { params }: RouteParams) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await requireRole([Role.LABELER])
     const { id } = await params
@@ -17,6 +13,21 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const task = await prisma.task.findUnique({
       where: { id },
+      include: {
+        package: {
+          include: {
+            tasks: {
+              where: {
+                checkerId: { not: null },
+              },
+              select: {
+                checkerId: true,
+              },
+              take: 1,
+            },
+          },
+        },
+      },
     })
 
     if (!task) {
@@ -29,6 +40,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         { status: 403 }
       )
     }
+
+    // 查找已领取该任务包的质检员
+    const existingChecker = task.package?.tasks?.[0]?.checkerId
 
     // 使用事务保存标注数据和更新任务状态
     const updatedTask = await prisma.$transaction(async (tx) => {
@@ -56,13 +70,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           create: {
             taskId: id,
             remarks: metadata.remarks,
-            issues: metadata.issues,
             videoClips: metadata.videoClips,
             croppedAreas: metadata.croppedAreas,
           },
           update: {
             remarks: metadata.remarks,
-            issues: metadata.issues,
             videoClips: metadata.videoClips,
             croppedAreas: metadata.croppedAreas,
           },
@@ -70,18 +82,31 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
 
       // 更新任务状态
+      const updateData: Record<string, unknown> = {
+        status: existingChecker ? 'CHECKING' : 'LABELED',
+        labeledAt: new Date(),
+      }
+
+      // 如果有质检员已领取该包，则自动分配
+      if (existingChecker) {
+        updateData.checkerId = existingChecker
+        updateData.checkedAt = new Date()
+      }
+
       return tx.task.update({
         where: { id },
         data: {
-          status: 'LABELED',
-          labeledAt: new Date(),
+          ...updateData,
           operationLogs: {
             create: {
               userId: session.id,
               action: 'submit',
               oldStatus: 'LABELING',
-              newStatus: 'LABELED',
-              details: { annotationCount: annotations?.length || 0 },
+              newStatus: updateData.status as string,
+              details: {
+                annotationCount: annotations?.length || 0,
+                autoAssignedToChecker: !!existingChecker,
+              },
             },
           },
         },

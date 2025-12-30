@@ -18,7 +18,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   return (
     <div className="min-h-screen bg-base-200">
       <DashboardNav user={session} />
-      <main className="container mx-auto px-4 py-6">
+      <main className="container max-w-7xl mx-auto px-4 py-6">
         {children}
       </main>
     </div>

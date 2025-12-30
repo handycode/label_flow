@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Pagination from '@/components/Pagination'
+import toast from '@/components/ui/Toast'
 
 interface MediaResource {
   id: string;
@@ -20,6 +21,7 @@ export default function MediaPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
+  const [syncContinuationToken, setSyncContinuationToken] = useState<string | undefined>(undefined)
   const pageSize = 20
   const [previewItem, setPreviewItem] = useState<MediaResource | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -49,14 +51,31 @@ export default function MediaPage() {
   const syncMedia = async () => {
     setSyncing(true)
     try {
-      const res = await fetch('/api/media', { method: 'POST' })
+      const url = syncContinuationToken
+        ? `/api/media?continuationToken=${encodeURIComponent(syncContinuationToken)}`
+        : '/api/media'
+
+      const res = await fetch(url, { method: 'POST' })
       const data = await res.json()
+
       if (data.success) {
-        alert(`同步完成：新增 ${data.data.created} 个，跳过 ${data.data.skipped} 个`)
+        toast.success(`同步完成：新增 ${data.data.created} 个，跳过 ${data.data.skipped} 个`)
+
+        // 如果还有更多数据，保存 continuationToken 以供下一次使用
+        if (data.data.hasMore && data.data.continuationToken) {
+          setSyncContinuationToken(data.data.continuationToken)
+          toast.info('还有更多文件，点击"继续同步"按钮继续')
+        } else {
+          setSyncContinuationToken(undefined)
+        }
+
         fetchMedia(1)
+      } else {
+        toast.error('同步失败')
       }
     } catch (error) {
       console.error('Failed to sync media:', error)
+      toast.error('同步过程中发生错误')
     } finally {
       setSyncing(false)
     }
@@ -101,13 +120,28 @@ export default function MediaPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">媒体资源</h1>
-        <button
-          className={`btn btn-primary ${syncing ? 'loading' : ''}`}
-          onClick={syncMedia}
-          disabled={syncing}
-        >
-          {syncing ? '同步中...' : '同步 S3 资源'}
-        </button>
+        <div className="flex gap-2">
+          {syncContinuationToken ? (
+            <button
+              className={`btn btn-warning ${syncing ? 'loading' : ''}`}
+              onClick={syncMedia}
+              disabled={syncing}
+            >
+              {syncing ? '同步中...' : '继续同步'}
+            </button>
+          ) : (
+            <button
+              className={`btn btn-primary ${syncing ? 'loading' : ''}`}
+              onClick={() => {
+                setSyncContinuationToken(undefined)
+                syncMedia()
+              }}
+              disabled={syncing}
+          >
+              {syncing ? '同步中...' : '同步 S3 资源'}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="overflow-x-auto">

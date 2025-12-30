@@ -3,12 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { hashPassword, requireRole } from '@/lib/auth'
 import { Role } from '@/types'
 
-interface RouteParams {
-  params: Promise<{ id: string }>;
-}
-
 // GET /api/users/:id
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await requireRole([Role.ADMIN])
     const { id } = await params
@@ -50,7 +46,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 // PATCH /api/users/:id
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await requireRole([Role.ADMIN])
     const { id } = await params
@@ -88,7 +84,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 }
 
 // DELETE /api/users/:id
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await requireRole([Role.ADMIN])
     const { id } = await params

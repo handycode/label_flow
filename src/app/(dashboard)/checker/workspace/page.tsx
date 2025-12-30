@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import Pagination from '@/components/Pagination'
 import toast from '@/components/ui/Toast'
 
@@ -22,7 +23,7 @@ interface Package {
 export default function CheckerWorkspacePage() {
   const [packages, setPackages] = useState<Package[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'available' | 'my'>('available')
+  const [filter, setFilter] = useState<'available' | 'my'>('my')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const pageSize = 12
@@ -68,11 +69,11 @@ export default function CheckerWorkspacePage() {
 
   const getFirstTask = async (packageId: string) => {
     try {
-      const res = await fetch(`/api/tasks?packageId=${packageId}&myTasks=true&pageSize=1`)
+      const res = await fetch(`/api/tasks?packageId=${packageId}&myTasks=true&status=CHECKING&pageSize=1`)
       const data = await res.json()
       if (data.success && data.data.items.length > 0) {
         const taskId = data.data.items[0].id
-        window.location.href = `/checker/workspace/${taskId}`
+        window.location.href = `/checker/workspace/task/${taskId}`
       } else {
         toast.error('没有找到可质检的任务')
       }
@@ -96,15 +97,6 @@ export default function CheckerWorkspacePage() {
         <h1 className="text-2xl font-bold">质检工作台</h1>
         <div className="tabs tabs-boxed">
           <button
-            className={`tab ${filter === 'available' ? 'tab-active' : ''}`}
-            onClick={() => {
-              setFilter('available')
-              setCurrentPage(1)
-            }}
-          >
-            待质检任务包
-          </button>
-          <button
             className={`tab ${filter === 'my' ? 'tab-active' : ''}`}
             onClick={() => {
               setFilter('my')
@@ -112,6 +104,15 @@ export default function CheckerWorkspacePage() {
             }}
           >
             我的质检包
+          </button>
+          <button
+            className={`tab ${filter === 'available' ? 'tab-active' : ''}`}
+            onClick={() => {
+              setFilter('available')
+              setCurrentPage(1)
+            }}
+          >
+            待质检任务包
           </button>
         </div>
       </div>
@@ -171,13 +172,20 @@ export default function CheckerWorkspacePage() {
                       领取质检包
                     </button>
                   )}
-                  {filter === 'my' && hasWorkingTasks && (
-                    <button
-                      className="btn btn-primary btn-sm"
-                      onClick={() => getFirstTask(pkg.id)}
-                    >
-                      继续质检
-                    </button>
+                  {filter === 'my' && (
+                    <>
+                      <Link href={`/checker/workspace/package/${pkg.id}`} className="btn btn-outline btn-sm">
+                        查看任务列表
+                      </Link>
+                      {hasWorkingTasks && (
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => getFirstTask(pkg.id)}
+                        >
+                          继续质检
+                        </button>
+                      )}
+                    </>
                   )}
                   {filter === 'available' && !hasClaimableTasks && (
                     <span className="text-sm text-base-content/60">暂无待质检任务</span>

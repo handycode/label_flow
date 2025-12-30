@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import AnnotationCanvas from '@/components/annotation/AnnotationCanvas'
 import Toolbar from '@/components/annotation/Toolbar'
 import MetadataPanel from '@/components/annotation/MetadataPanel'
+import toast from '@/components/ui/Toast'
 
 interface AnnotationData {
   id: string;
@@ -16,6 +17,7 @@ interface AnnotationData {
 
 interface Task {
   id: string;
+  packageId: string;
   status: string;
   media: {
     id: string;
@@ -26,10 +28,13 @@ interface Task {
   annotations: AnnotationData[];
   metadata?: {
     remarks?: string;
-    issues?: string[];
+    score?: number;
     videoClips?: unknown[];
     croppedAreas?: unknown[];
   };
+  createdBy?: { id: string; username: string };
+  labeler?: { id: string; username: string };
+  checker?: { id: string; username: string };
 }
 
 interface PageProps {
@@ -44,11 +49,15 @@ export default function LabelerTaskPage({ params }: PageProps) {
   const [mediaUrl, setMediaUrl] = useState<string>('')
   const [currentTool, setCurrentTool] = useState<'select' | 'rect' | 'ellipse'>('select')
   const [annotations, setAnnotations] = useState<AnnotationData[]>([])
-  const [metadata, setMetadata] = useState({
+  const [metadata, setMetadata] = useState<{
+    remarks: string;
+    score?: number;
+  }>({
     remarks: '',
-    issues: [] as string[],
   })
   const [submitting, setSubmitting] = useState(false)
+  const [userRole, setUserRole] = useState<string | null>(null)
+  const [isReadOnly, setIsReadOnly] = useState(false)
 
   const fetchMediaUrl = async (s3Key: string) => {
     try {
@@ -70,10 +79,11 @@ export default function LabelerTaskPage({ params }: PageProps) {
         if (data.success) {
           setTask(data.data)
           setAnnotations(data.data.annotations || [])
+          setIsReadOnly(data.data.status === 'APPROVED')
           if (data.data.metadata) {
             setMetadata({
               remarks: data.data.metadata.remarks || '',
-              issues: data.data.metadata.issues || [],
+              score: data.data.metadata.score,
             })
           }
           // 获取媒体预签名 URL
@@ -85,7 +95,22 @@ export default function LabelerTaskPage({ params }: PageProps) {
         setLoading(false)
       }
     }
+
+    // 获取用户角色
+    const fetchUserRole = async () => {
+      try {
+        const res = await fetch('/api/auth/me')
+        const data = await res.json()
+        if (data.success) {
+          setUserRole(data.data.role)
+        }
+      } catch (error) {
+        console.error('Failed to fetch user role:', error)
+      }
+    }
+
     fetchTask()
+    fetchUserRole()
   }, [id])
 
 
@@ -103,10 +128,32 @@ export default function LabelerTaskPage({ params }: PageProps) {
       })
       const data = await res.json()
       if (data.success) {
-        alert('提交成功！')
-        router.push('/labeler/workspace')
+        toast.success('提交成功！')
+
+        // 获取同一 package 下的下一个待标注任务
+        if (task?.packageId) {
+          try {
+            const nextTaskRes = await fetch(
+              `/api/tasks?packageId=${task.packageId}&myTasks=false&status=LABELING&pageSize=1`
+            )
+            const nextTaskData = await nextTaskRes.json()
+            if (nextTaskData.success && nextTaskData.data.items.length > 0) {
+              const nextTaskId = nextTaskData.data.items[0].id
+              router.push(`/labeler/workspace/task/${nextTaskId}`)
+              toast.success('让我们继续！')
+            } else {
+              // 没有下一个任务，返回列表
+              router.push(`/labeler/workspace/package/${task.packageId}`)
+            }
+          } catch (error) {
+            console.error('Failed to get next task:', error)
+            router.push('/labeler/workspace')
+          }
+        } else {
+          router.push('/labeler/workspace')
+        }
       } else {
-        alert(data.error)
+        toast.error(data.error || '提交失败')
       }
     } catch (error) {
       console.error('Failed to submit:', error)
@@ -136,9 +183,14 @@ export default function LabelerTaskPage({ params }: PageProps) {
       {/* 头部 */}
       <div className="flex justify-between items-center mb-4">
         <div>
-          <h1 className="text-xl font-bold">
-            标注任务: {task.media.fileName}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold">
+              {isReadOnly ? '查看任务' : '标注任务'}: {task.media.fileName}
+            </h1>
+            {isReadOnly && (
+              <span className="badge badge-success">已通过</span>
+            )}
+          </div>
           <p className="text-sm text-base-content/60">
             类型: {task.media.type}
           </p>
@@ -150,21 +202,26 @@ export default function LabelerTaskPage({ params }: PageProps) {
           >
             返回
           </button>
-          <button
-            className={`btn btn-primary ${submitting ? 'loading' : ''}`}
-            onClick={handleSubmit}
-            disabled={submitting}
-          >
-            {submitting ? '提交中...' : '提交标注'}
-          </button>
+          {!isReadOnly && (
+            <button
+              className={`btn btn-primary ${submitting ? 'loading' : ''}`}
+              onClick={handleSubmit}
+              disabled={submitting || annotations.length === 0}
+              title={annotations.length === 0 ? '请至少添加一个标注' : ''}
+            >
+              {submitting ? '提交中...' : '提交标注'}
+            </button>
+          )}
         </div>
       </div>
 
       {/* 工具栏 */}
-      <Toolbar
-        currentTool={currentTool}
-        onToolChange={setCurrentTool}
-      />
+      {!isReadOnly && (
+        <Toolbar
+          currentTool={currentTool}
+          onToolChange={setCurrentTool}
+        />
+      )}
 
       {/* 主内容区 */}
       <div className="flex-1 flex gap-4 overflow-hidden">
@@ -173,9 +230,10 @@ export default function LabelerTaskPage({ params }: PageProps) {
           <AnnotationCanvas
             mediaUrl={mediaUrl}
             mediaType={task.media.type as 'IMAGE' | 'VIDEO'}
-            currentTool={currentTool}
+            currentTool={isReadOnly ? 'select' : currentTool}
             annotations={annotations}
-            onAnnotationsChange={setAnnotations}
+            onAnnotationsChange={isReadOnly ? () => {} : setAnnotations}
+            onToolChange={isReadOnly ? () => {} : setCurrentTool}
           />
         </div>
 
@@ -183,8 +241,12 @@ export default function LabelerTaskPage({ params }: PageProps) {
         <div className="w-80 flex-shrink-0">
           <MetadataPanel
             metadata={metadata}
-            onMetadataChange={setMetadata}
             annotations={annotations}
+            userRole={userRole || undefined}
+            isReadOnly={isReadOnly}
+            creator={task.createdBy}
+            labeler={task.labeler}
+            checker={task.checker}
           />
         </div>
       </div>

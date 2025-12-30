@@ -12,6 +12,12 @@ export enum UserStatus {
   SUSPENDED = 'SUSPENDED',
 }
 
+export enum RoleName {
+  ADMIN = '管理员',
+  LABELER = '标注员',
+  CHECKER = '质检员',
+}
+
 export interface User {
   id: string;
   username: string;

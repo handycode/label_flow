@@ -3,12 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/auth'
 import { Role } from '@/types'
 
-interface RouteContext {
-  params: { id: string }
-}
-
 // POST /api/packages/:id/distribute - 批量分包/分配媒体到任务
-export async function POST(request: NextRequest, { params }: RouteContext) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await requireRole([Role.ADMIN])
     const { id } = await params

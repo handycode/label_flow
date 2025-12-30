@@ -169,7 +169,6 @@ model TaskMetadata {
   id           String   @id @default(cuid())
   taskId       String   @unique @map("task_id")
   remarks      String?  // 备注
-  issues       Json?    // 问题列表 ["issue1", "issue2"]
   videoClips   Json?    @map("video_clips") // 视频截取片段
   croppedAreas Json?    @map("cropped_areas") // 画面裁切区域
   createdAt    DateTime @default(now()) @map("created_at")
@@ -187,7 +186,6 @@ model QualityScore {
   id          String   @id @default(cuid())
   taskId      String   @map("task_id")
   score       Int      // 1-5 分
-  feedback    String?
   createdById String   @map("created_by_id")
   createdAt   DateTime @default(now()) @map("created_at")
 

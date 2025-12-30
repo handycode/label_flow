@@ -3,17 +3,13 @@ import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/auth'
 import { Role } from '@/types'
 
-interface RouteParams {
-  params: Promise<{ id: string }>;
-}
-
 // POST /api/tasks/:id/review - 质检审核 (通过/驳回)
-export async function POST(request: NextRequest, { params }: RouteParams) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await requireRole([Role.CHECKER])
     const { id } = await params
     const body = await request.json()
-    const { approved, score, feedback } = body
+    const { approved, score, remarks } = body
 
     if (typeof approved !== 'boolean') {
       return NextResponse.json(
@@ -52,10 +48,23 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         data: {
           taskId: id,
           score,
-          feedback,
           createdById: session.id,
         },
       })
+
+      // 更新或创建元数据（保存质检员的备注）
+      if (remarks !== undefined) {
+        await tx.taskMetadata.upsert({
+          where: { taskId: id },
+          create: {
+            taskId: id,
+            remarks,
+          },
+          update: {
+            remarks,
+          },
+        })
+      }
 
       // 更新任务状态
       return tx.task.update({
@@ -69,7 +78,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
               action: approved ? 'approve' : 'reject',
               oldStatus: 'CHECKING',
               newStatus,
-              details: { score, feedback },
+              details: { score, remarks },
             },
           },
         },

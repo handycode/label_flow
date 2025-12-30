@@ -3,14 +3,10 @@ import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/auth'
 import { Role } from '@/types'
 
-interface RouteParams {
-  params: Promise<{ id: string }>;
-}
-
 // GET /api/packages/:id
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireRole([Role.ADMIN])
+    const user = await requireRole([Role.ADMIN, Role.LABELER, Role.CHECKER])
     const { id } = await params
 
     const taskPackage = await prisma.taskPackage.findUnique({
@@ -18,10 +14,29 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       include: {
         createdBy: { select: { id: true, username: true } },
         tasks: {
+          // 根据角色过滤任务
+          where:
+            user.role === Role.ADMIN
+              ? undefined
+              : user.role === Role.LABELER
+                ? { labelerId: user.id }
+                : { checkerId: user.id },
           include: {
             media: true,
             labeler: { select: { id: true, username: true } },
             checker: { select: { id: true, username: true } },
+          },
+        },
+        _count: {
+          select: {
+            tasks: {
+              where:
+                user.role === Role.ADMIN
+                  ? undefined
+                  : user.role === Role.LABELER
+                    ? { labelerId: user.id }
+                    : { checkerId: user.id },
+            },
           },
         },
       },
@@ -31,7 +46,20 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ success: false, error: 'Package not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ success: true, data: taskPackage })
+    // 计算状态统计（基于过滤后的任务）
+    const stats = {
+      pendingCount: taskPackage.tasks.filter((t) => t.status === 'PENDING').length,
+      labelingCount: taskPackage.tasks.filter((t) => t.status === 'LABELING').length,
+      labeledCount: taskPackage.tasks.filter((t) => t.status === 'LABELED').length,
+      checkingCount: taskPackage.tasks.filter((t) => t.status === 'CHECKING').length,
+      rejectedCount: taskPackage.tasks.filter((t) => t.status === 'REJECTED').length,
+      approvedCount: taskPackage.tasks.filter((t) => t.status === 'APPROVED').length,
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: { ...taskPackage, ...stats },
+    })
   } catch (error) {
     console.error('Get package error:', error)
     if ((error as Error).message === 'Forbidden') {
@@ -42,7 +70,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 // PATCH /api/packages/:id
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await requireRole([Role.ADMIN])
     const { id } = await params
@@ -74,7 +102,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 }
 
 // DELETE /api/packages/:id
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await requireRole([Role.ADMIN])
     const { id } = await params

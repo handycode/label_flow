@@ -2,18 +2,29 @@
 
 import { useEffect, useState } from 'react'
 import Pagination from '@/components/Pagination'
+import toast from '@/components/ui/Toast'
+import { Role, RoleName } from '@/types'
 
 interface User {
   id: string;
   username: string;
   email: string;
-  role: string;
+  role: Role;
   status: string;
   createdAt: string;
   _count: {
     labeledTasks: number;
     checkedTasks: number;
   };
+}
+
+const getRoleBadge = (role: string) => {
+  const badges: Record<string, string> = {
+    ADMIN: 'badge-primary',
+    LABELER: 'badge-info',
+    CHECKER: 'badge-success',
+  }
+  return badges[role] || 'badge-ghost'
 }
 
 export default function UsersPage() {
@@ -71,25 +82,18 @@ export default function UsersPage() {
       })
       const data = await res.json()
       if (data.success) {
+        toast.success('用户创建成功')
         setShowCreateModal(false)
         setNewUser({ username: '', email: '', password: '', role: 'LABELER' })
         fetchUsers(currentPage)
       } else {
-        alert(data.error)
+        toast.error(data.error || '创建用户失败')
       }
     } catch (error) {
       console.error('Failed to create user:', error)
     }
   }
 
-  const getRoleBadge = (role: string) => {
-    const badges: Record<string, string> = {
-      ADMIN: 'badge-error',
-      LABELER: 'badge-info',
-      CHECKER: 'badge-success',
-    }
-    return badges[role] || 'badge-ghost'
-  }
 
   const openEditModal = (user: User) => {
     setEditingUser(user)
@@ -122,15 +126,16 @@ export default function UsersPage() {
       })
       const data = await res.json()
       if (data.success) {
+        toast.success('用户信息已更新')
         setShowEditModal(false)
         setEditingUser(null)
         fetchUsers(currentPage)
       } else {
-        alert(data.error)
+        toast.error(data.error || '更新用户失败')
       }
     } catch (error) {
       console.error('Failed to update user:', error)
-      alert('更新用户失败')
+      toast.error('更新用户失败')
     }
   }
 
@@ -174,7 +179,7 @@ export default function UsersPage() {
                 <td>{user.email}</td>
                 <td>
                   <span className={`badge badge-sm ${getRoleBadge(user.role)}`}>
-                    {user.role}
+                    {RoleName[user.role]}
                   </span>
                 </td>
                 <td>
