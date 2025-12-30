@@ -176,6 +176,7 @@ export default function LabelerTaskPage({ params }: PageProps) {
             currentTool={currentTool}
             annotations={annotations}
             onAnnotationsChange={setAnnotations}
+            onToolChange={setCurrentTool}
           />
         </div>
 

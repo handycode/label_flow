@@ -17,6 +17,7 @@ interface Props {
   currentTool: 'select' | 'rect' | 'ellipse';
   annotations: Annotation[];
   onAnnotationsChange: (annotations: Annotation[]) => void;
+  onToolChange?: (tool: 'select' | 'rect' | 'ellipse') => void;
   readOnly?: boolean;
 }
 
@@ -26,6 +27,7 @@ export default function AnnotationCanvas({
   currentTool,
   annotations,
   onAnnotationsChange,
+  onToolChange,
   readOnly = false,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -48,23 +50,12 @@ export default function AnnotationCanvas({
       width: container.clientWidth,
       height: container.clientHeight,
       selection: !readOnly,
+      backgroundColor: '#f0f0f0',
     })
 
     fabricRef.current = canvas
 
-    // 处理窗口大小变化
-    const handleResize = () => {
-      canvas.setDimensions({
-        width: container.clientWidth,
-        height: container.clientHeight,
-      })
-      canvas.renderAll()
-    }
-
-    window.addEventListener('resize', handleResize)
-
     return () => {
-      window.removeEventListener('resize', handleResize)
       canvas.dispose()
     }
   }, [readOnly])
@@ -76,25 +67,42 @@ export default function AnnotationCanvas({
     const canvas = fabricRef.current
 
     if (mediaType === 'IMAGE') {
+      // 清除旧的背景图片对象
+      const objects = canvas.getObjects()
+      objects.forEach((obj) => {
+        if ((obj as any).isBackground) {
+          canvas.remove(obj)
+        }
+      })
+
       fabric.FabricImage.fromURL(mediaUrl, { crossOrigin: 'anonymous' })
         .then((img) => {
-          // 计算适合画布的缩放比例
           const canvasWidth = canvas.getWidth()
           const canvasHeight = canvas.getHeight()
-          const scaleX = canvasWidth / (img.width || 1)
-          const scaleY = canvasHeight / (img.height || 1)
+          const imgWidth = img.width || 1
+          const imgHeight = img.height || 1
+
+          const scaleX = canvasWidth / imgWidth
+          const scaleY = canvasHeight / imgHeight
           const scale = Math.min(scaleX, scaleY, 1)
 
           img.set({
-            left: (canvasWidth - (img.width || 0) * scale) / 2,
-            top: (canvasHeight - (img.height || 0) * scale) / 2,
             scaleX: scale,
             scaleY: scale,
+            originX: 'left',
+            originY: 'top',
+            left: 0, // (canvasWidth - imgWidth * scale) / 2,
+            top: 0, //(canvasHeight - imgHeight * scale) / 2,
             selectable: false,
             evented: false,
           })
 
-          canvas.backgroundImage = img
+          // 标记为背景图片并添加到画布
+          ;(img as any).isBackground = true
+          canvas.sendObjectToBack(img)
+
+          canvas.setZoom(1)
+          setZoom(1)
           canvas.renderAll()
         })
         .catch((err) => {
@@ -113,20 +121,39 @@ export default function AnnotationCanvas({
         setVideoDuration(video.duration || 100)
         const canvasWidth = canvas.getWidth()
         const canvasHeight = canvas.getHeight()
-        const scaleX = canvasWidth / video.videoWidth
-        const scaleY = canvasHeight / video.videoHeight
+        const videoWidth = video.videoWidth || 1
+        const videoHeight = video.videoHeight || 1
+
+        const scaleX = canvasWidth / videoWidth
+        const scaleY = canvasHeight / videoHeight
         const scale = Math.min(scaleX, scaleY, 1)
 
         const videoImage = new fabric.FabricImage(video, {
-          left: (canvasWidth - video.videoWidth * scale) / 2,
-          top: (canvasHeight - video.videoHeight * scale) / 2,
           scaleX: scale,
           scaleY: scale,
+          originX: 'left',
+          originY: 'top',
+          left: 0,
+          top: 0,
           selectable: false,
           evented: false,
         })
 
-        canvas.backgroundImage = videoImage
+        // 清除旧的背景图片对象
+        const objects = canvas.getObjects()
+        objects.forEach((obj) => {
+          if ((obj as any).isBackground) {
+            canvas.remove(obj)
+          }
+        })
+
+        // 标记为背景图片并添加到画布
+        ;(videoImage as any).isBackground = true
+        canvas.add(videoImage)
+        canvas.sendObjectToBack(videoImage)
+
+        canvas.setZoom(1)
+        setZoom(1)
         canvas.renderAll()
       })
     }
@@ -141,7 +168,10 @@ export default function AnnotationCanvas({
     // 清除现有标注对象（保留背景）
     const objects = canvas.getObjects()
     objects.forEach((obj) => {
-      canvas.remove(obj)
+      // 只移除非背景图片的对象
+      if (!(obj as any).isBackground) {
+        canvas.remove(obj)
+      }
     })
 
     // 添加标注
@@ -225,12 +255,14 @@ export default function AnnotationCanvas({
       canvas.selection = true
       canvas.forEachObject((obj) => {
         obj.selectable = true
+        obj.evented = true
       })
     } else {
       canvas.isDrawingMode = false
       canvas.selection = false
       canvas.forEachObject((obj) => {
         obj.selectable = false
+        obj.evented = false
       })
     }
 
@@ -307,15 +339,35 @@ export default function AnnotationCanvas({
       setIsDrawing(false)
       startPointRef.current = null
 
-      // 保存标注
+      // 获取当前绘制的对象
+      const activeObj = canvas.getActiveObject()
+
+      // 先保存标注
       saveAnnotations()
+
+      // 绘制完成后，切换回选择工具
+      if (activeObj && onToolChange) {
+        onToolChange('select')
+
+        // 稍微延迟确保工具切换后再设置选中状态
+        setTimeout(() => {
+          if (fabricRef.current) {
+            fabricRef.current.forEachObject((obj) => {
+              obj.selectable = true
+              obj.evented = true
+            })
+            fabricRef.current.setActiveObject(activeObj)
+            fabricRef.current.renderAll()
+          }
+        }, 10)
+      }
     }
 
     canvas.on('mouse:down', handleMouseDown)
     canvas.on('mouse:move', handleMouseMove)
     canvas.on('mouse:up', handleMouseUp)
 
-    // 对象修改后保存
+    // 对象修改后保存（移动、缩放、旋转等操作完成后）
     canvas.on('object:modified', saveAnnotations)
 
     return () => {
@@ -324,7 +376,7 @@ export default function AnnotationCanvas({
       canvas.off('mouse:up', handleMouseUp)
       canvas.off('object:modified', saveAnnotations)
     }
-  }, [currentTool, saveAnnotations, isDrawing, readOnly])
+  }, [currentTool, saveAnnotations, isDrawing, readOnly, onToolChange])
 
   // 缩放控制
   const handleZoom = (delta: number) => {
@@ -335,6 +387,30 @@ export default function AnnotationCanvas({
     fabricRef.current.setZoom(newZoom)
     fabricRef.current.renderAll()
   }
+
+  // 鼠标滚轮缩放
+  useEffect(() => {
+    const canvas = fabricRef.current
+    if (!canvas) return
+
+    const handleWheel = (opt: any) => {
+      const evt = opt.e as WheelEvent
+      const delta = -evt.deltaY
+      const currentZoom = canvas.getZoom()
+      const newZoom = Math.max(0.1, Math.min(5, currentZoom + delta / 500))
+
+      canvas.zoomToPoint(new fabric.Point(evt.offsetX, evt.offsetY), newZoom)
+      setZoom(newZoom)
+
+      evt.preventDefault()
+      evt.stopPropagation()
+    }
+
+    canvas.on('mouse:wheel', handleWheel)
+    return () => {
+      canvas.off('mouse:wheel', handleWheel)
+    }
+  }, [])
 
   // 视频控制
   const handleVideoSeek = (time: number) => {
@@ -390,8 +466,8 @@ export default function AnnotationCanvas({
       )}
 
       {/* 画布容器 */}
-      <div ref={containerRef} className="flex-1 overflow-hidden">
-        <canvas ref={canvasRef} />
+      <div ref={containerRef} className="flex-1 w-full bg-base-300 overflow-hidden">
+        <canvas ref={canvasRef} className="block" />
       </div>
     </div>
   )
