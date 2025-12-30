@@ -28,13 +28,14 @@ interface PackageDetail {
 }
 
 const TASKS_PER_PAGE = 20
+const MAX_DISTRIBUTE_COUNT = 200
 
 export default function PackageDetailPage({ params }: { params: Usable<{id: string}> }) {
   const { id } = use(params)
   const [pkg, setPkg] = useState<PackageDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [distributing, setDistributing] = useState(false)
-  const [distributeLimit, setDistributeLimit] = useState(1000)
+  const [distributeLimit, setDistributeLimit] = useState(MAX_DISTRIBUTE_COUNT)
   const [currentPage, setCurrentPage] = useState(1)
 
   const fetchDetail = useCallback(async () => {
@@ -104,7 +105,7 @@ export default function PackageDetailPage({ params }: { params: Usable<{id: stri
   const startIndex = (currentPage - 1) * TASKS_PER_PAGE
   const endIndex = startIndex + TASKS_PER_PAGE
   const currentTasks = pkg.tasks.slice(startIndex, endIndex)
-  const MAX_DISTRIBUTE_COUNT = 200
+
   return (
     <div className="space-y-6">
       <div className="flex items-center">
@@ -119,16 +120,16 @@ export default function PackageDetailPage({ params }: { params: Usable<{id: stri
           </div>
         </div>
         <div className="ml-auto mr-2">
-          {pkg.totalCount < MAX_DISTRIBUTE_COUNT && (
+          {pkg.totalCount < MAX_DISTRIBUTE_COUNT && pkg.status === 'PENDING' && (
           <div className="flex gap-2 items-center">
             <div className="form-control">
               <label className="label py-0">
-                <span className="label-text text-xs">任务数（最多1000）</span>
+                <span className="label-text text-xs">任务数（最多{MAX_DISTRIBUTE_COUNT}）</span>
               </label>
               <input
                 type="number"
                 className="input input-bordered input-sm w-32"
-                value={distributeLimit}
+                value={Math.min(distributeLimit, MAX_DISTRIBUTE_COUNT - pkg.totalCount)}
                 onChange={(e) => setDistributeLimit(
                   Math.min(MAX_DISTRIBUTE_COUNT, Math.max(1, parseInt(e.target.value) || 1))
                 )}
