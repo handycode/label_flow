@@ -25,16 +25,15 @@ interface PackageDetail {
   name: string
   description?: string | null
   totalCount: number
-  pendingCount?: number
-  labelingCount?: number
   labeledCount?: number
-  rejectedCount?: number
+  checkingCount?: number
   approvedCount?: number
+  rejectedCount?: number
 }
 
 const TASKS_PER_PAGE = 20
 
-export default function PackageTaskListPage({ params }: { params: Usable<{ id: string }> }) {
+export default function CheckerPackageTaskListPage({ params }: { params: Usable<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
   const [pkg, setPkg] = useState<PackageDetail | null>(null)
@@ -89,7 +88,7 @@ export default function PackageTaskListPage({ params }: { params: Usable<{ id: s
   }
 
   const handleTaskClick = (taskId: string) => {
-    router.push(`/labeler/workspace/task/${taskId}`)
+    router.push(`/checker/workspace/task/${taskId}`)
   }
 
   if (loading) {
@@ -112,7 +111,7 @@ export default function PackageTaskListPage({ params }: { params: Usable<{ id: s
           <h1 className="text-2xl font-bold">{pkg.name}</h1>
           <p className="text-base-content/60 mt-1">{pkg.description || '暂无描述'}</p>
         </div>
-        <Link href="/labeler/workspace" className="btn btn-outline">
+        <Link href="/checker/workspace" className="btn btn-outline">
           返回工作台
         </Link>
       </div>
@@ -124,24 +123,20 @@ export default function PackageTaskListPage({ params }: { params: Usable<{ id: s
           <div className="stat-value text-2xl">{pkg.totalCount}</div>
         </div>
         <div className="stat">
-          <div className="stat-title">待领取</div>
-          <div className="stat-value text-2xl text-ghost">{pkg.pendingCount || 0}</div>
-        </div>
-        <div className="stat">
-          <div className="stat-title">标注中</div>
-          <div className="stat-value text-2xl text-info">{pkg.labelingCount || 0}</div>
-        </div>
-        <div className="stat">
           <div className="stat-title">已标注</div>
           <div className="stat-value text-2xl text-warning">{pkg.labeledCount || 0}</div>
         </div>
         <div className="stat">
-          <div className="stat-title">已驳回</div>
-          <div className="stat-value text-2xl text-error">{pkg.rejectedCount || 0}</div>
+          <div className="stat-title">质检中</div>
+          <div className="stat-value text-2xl text-info">{pkg.checkingCount || 0}</div>
         </div>
         <div className="stat">
-          <div className="stat-title">已完成</div>
+          <div className="stat-title">已通过</div>
           <div className="stat-value text-2xl text-success">{pkg.approvedCount || 0}</div>
+        </div>
+        <div className="stat">
+          <div className="stat-title">已驳回</div>
+          <div className="stat-value text-2xl text-error">{pkg.rejectedCount || 0}</div>
         </div>
       </div>
 
@@ -192,26 +187,22 @@ export default function PackageTaskListPage({ params }: { params: Usable<{ id: s
                       <td>
                         <button
                           className={`btn btn-sm ${
-                            task.status === 'REJECTED'
-                              ? 'btn-warning'
-                              : task.status === 'APPROVED'
-                                ? 'btn-ghost'
-                                : 'btn-primary'
+                            task.status === 'CHECKING'
+                              ? 'btn-primary'
+                              : 'btn-outline'
                           }`}
                           onClick={() => handleTaskClick(task.id)}
                           disabled={
-                            task.status !== 'LABELING' &&
-                            task.status !== 'REJECTED' &&
-                            task.status !== 'APPROVED'
+                            task.status !== 'CHECKING' &&
+                            task.status !== 'APPROVED' &&
+                            task.status !== 'REJECTED'
                           }
                         >
-                          {task.status === 'REJECTED'
-                            ? '修改标注'
-                            : task.status === 'APPROVED'
+                          {task.status === 'CHECKING'
+                            ? '继续质检'
+                            : task.status === 'APPROVED' || task.status === 'REJECTED'
                               ? '查看'
-                              : task.status === 'LABELING'
-                                ? '继续标注'
-                                : '查看'}
+                              : '查看'}
                         </button>
                       </td>
                     </tr>

@@ -26,11 +26,13 @@ interface Task {
   annotations: AnnotationData[];
   metadata?: {
     remarks?: string;
-    issues?: string[];
     score?: number;
     videoClips?: unknown[];
     croppedAreas?: unknown[];
   };
+  createdBy?: { id: string; username: string };
+  labeler?: { id: string; username: string };
+  checker?: { id: string; username: string };
 }
 
 interface PageProps {
@@ -47,14 +49,13 @@ export default function LabelerTaskPage({ params }: PageProps) {
   const [annotations, setAnnotations] = useState<AnnotationData[]>([])
   const [metadata, setMetadata] = useState<{
     remarks: string;
-    issues: string[];
     score?: number;
   }>({
     remarks: '',
-    issues: [],
   })
   const [submitting, setSubmitting] = useState(false)
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [isReadOnly, setIsReadOnly] = useState(false)
 
   const fetchMediaUrl = async (s3Key: string) => {
     try {
@@ -76,10 +77,10 @@ export default function LabelerTaskPage({ params }: PageProps) {
         if (data.success) {
           setTask(data.data)
           setAnnotations(data.data.annotations || [])
+          setIsReadOnly(data.data.status === 'APPROVED')
           if (data.data.metadata) {
             setMetadata({
               remarks: data.data.metadata.remarks || '',
-              issues: data.data.metadata.issues || [],
               score: data.data.metadata.score,
             })
           }
@@ -158,9 +159,14 @@ export default function LabelerTaskPage({ params }: PageProps) {
       {/* 头部 */}
       <div className="flex justify-between items-center mb-4">
         <div>
-          <h1 className="text-xl font-bold">
-            标注任务: {task.media.fileName}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold">
+              {isReadOnly ? '查看任务' : '标注任务'}: {task.media.fileName}
+            </h1>
+            {isReadOnly && (
+              <span className="badge badge-success">已通过</span>
+            )}
+          </div>
           <p className="text-sm text-base-content/60">
             类型: {task.media.type}
           </p>
@@ -172,21 +178,25 @@ export default function LabelerTaskPage({ params }: PageProps) {
           >
             返回
           </button>
-          <button
-            className={`btn btn-primary ${submitting ? 'loading' : ''}`}
-            onClick={handleSubmit}
-            disabled={submitting}
-          >
-            {submitting ? '提交中...' : '提交标注'}
-          </button>
+          {!isReadOnly && (
+            <button
+              className={`btn btn-primary ${submitting ? 'loading' : ''}`}
+              onClick={handleSubmit}
+              disabled={submitting}
+            >
+              {submitting ? '提交中...' : '提交标注'}
+            </button>
+          )}
         </div>
       </div>
 
       {/* 工具栏 */}
-      <Toolbar
-        currentTool={currentTool}
-        onToolChange={setCurrentTool}
-      />
+      {!isReadOnly && (
+        <Toolbar
+          currentTool={currentTool}
+          onToolChange={setCurrentTool}
+        />
+      )}
 
       {/* 主内容区 */}
       <div className="flex-1 flex gap-4 overflow-hidden">
@@ -195,10 +205,10 @@ export default function LabelerTaskPage({ params }: PageProps) {
           <AnnotationCanvas
             mediaUrl={mediaUrl}
             mediaType={task.media.type as 'IMAGE' | 'VIDEO'}
-            currentTool={currentTool}
+            currentTool={isReadOnly ? 'select' : currentTool}
             annotations={annotations}
-            onAnnotationsChange={setAnnotations}
-            onToolChange={setCurrentTool}
+            onAnnotationsChange={isReadOnly ? () => {} : setAnnotations}
+            onToolChange={isReadOnly ? () => {} : setCurrentTool}
           />
         </div>
 
@@ -206,9 +216,13 @@ export default function LabelerTaskPage({ params }: PageProps) {
         <div className="w-80 flex-shrink-0">
           <MetadataPanel
             metadata={metadata}
-            onMetadataChange={setMetadata}
+            onMetadataChange={isReadOnly ? () => {} : setMetadata}
             annotations={annotations}
             userRole={userRole || undefined}
+            isReadOnly={isReadOnly}
+            creator={task.createdBy}
+            labeler={task.labeler}
+            checker={task.checker}
           />
         </div>
       </div>

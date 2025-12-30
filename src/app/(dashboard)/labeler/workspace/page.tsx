@@ -17,6 +17,7 @@ interface Package {
   labelingCount?: number;
   labeledCount?: number;
   rejectedCount?: number;
+  approvedCount?: number;
   _count: { tasks: number };
 }
 
@@ -157,7 +158,7 @@ export default function LabelerWorkspacePage() {
                       <div className="stat py-2">
                         <div className="stat-title text-xs">已完成</div>
                         <div className="stat-value text-2xl text-success">
-                          {pkg.labeledCount || 0}
+                          {(pkg.labeledCount || 0) + (pkg.approvedCount || 0)}
                         </div>
                       </div>
                     </>

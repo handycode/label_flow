@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AnnotationCanvas from '@/components/annotation/AnnotationCanvas'
+import MetadataPanel from '@/components/annotation/MetadataPanel'
 
 interface AnnotationData {
   id: string;
@@ -22,14 +23,17 @@ interface Task {
     type: string;
   };
   labeler?: { id: string; username: string };
+  checker?: { id: string; username: string };
+  package?: {
+    createdBy?: { id: string; username: string };
+  };
   annotations: AnnotationData[];
   metadata?: {
     remarks?: string;
-    issues?: string[];
+    score?: number;
   };
   qualityScores?: {
     score: number;
-    feedback?: string;
   }[];
 }
 
@@ -44,7 +48,7 @@ export default function CheckerTaskPage({ params }: PageProps) {
   const [loading, setLoading] = useState(true)
   const [mediaUrl, setMediaUrl] = useState<string>('')
   const [score, setScore] = useState(5)
-  const [feedback, setFeedback] = useState('')
+  const [remarks, setRemarks] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const fetchMediaUrl = async (s3Key: string) => {
@@ -66,6 +70,7 @@ export default function CheckerTaskPage({ params }: PageProps) {
         const data = await res.json()
         if (data.success) {
           setTask(data.data)
+          setRemarks(data.data.metadata?.remarks || '')
           fetchMediaUrl(data.data.media.s3Key)
         }
       } catch (error) {
@@ -88,7 +93,7 @@ export default function CheckerTaskPage({ params }: PageProps) {
         body: JSON.stringify({
           approved,
           score,
-          feedback,
+          remarks,
         }),
       })
       const data = await res.json()
@@ -121,14 +126,23 @@ export default function CheckerTaskPage({ params }: PageProps) {
     )
   }
 
+  const isReadOnly = task.status === 'APPROVED' || task.status === 'REJECTED'
+
   return (
     <div className="h-[calc(100vh-120px)] flex flex-col">
       {/* 头部 */}
       <div className="flex justify-between items-center mb-4">
         <div>
-          <h1 className="text-xl font-bold">
-            质检任务: {task.media.fileName}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold">
+              质检任务: {task.media.fileName}
+            </h1>
+            {isReadOnly && (
+              <span className={`badge ${task.status === 'APPROVED' ? 'badge-success' : 'badge-error'}`}>
+                {task.status === 'APPROVED' ? '已通过' : '已驳回'}
+              </span>
+            )}
+          </div>
           <p className="text-sm text-base-content/60">
             标注员: {task.labeler?.username || '-'} | 标注数: {task.annotations.length}
           </p>
@@ -157,31 +171,20 @@ export default function CheckerTaskPage({ params }: PageProps) {
 
         {/* 右侧质检面板 */}
         <div className="w-80 flex-shrink-0 space-y-4">
-          {/* 标注信息 */}
-          <div className="card bg-base-100 shadow">
-            <div className="card-body">
-              <h3 className="card-title text-base">标注信息</h3>
-              <div className="text-sm space-y-2">
-                <p>标注数量: {task.annotations.length}</p>
-                {task.metadata?.remarks && (
-                  <div>
-                    <p className="font-medium">备注:</p>
-                    <p className="text-base-content/60">{task.metadata.remarks}</p>
-                  </div>
-                )}
-                {task.metadata?.issues && task.metadata.issues.length > 0 && (
-                  <div>
-                    <p className="font-medium">问题标记:</p>
-                    <ul className="list-disc list-inside text-base-content/60">
-                      {task.metadata.issues.map((issue, i) => (
-                        <li key={i}>{issue}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          {/* 任务信息和标注列表 */}
+          <MetadataPanel
+            metadata={{
+              remarks: task.metadata?.remarks || '',
+              score: task.metadata?.score,
+            }}
+            onMetadataChange={() => {}}
+            annotations={task.annotations}
+            userRole="CHECKER"
+            isReadOnly={true}
+            creator={task.package?.createdBy}
+            labeler={task.labeler}
+            checker={task.checker}
+          />
 
           {/* 质检评分 */}
           <div className="card bg-base-100 shadow">
@@ -201,6 +204,7 @@ export default function CheckerTaskPage({ params }: PageProps) {
                       className="mask mask-star-2 bg-orange-400"
                       checked={score === s}
                       onChange={() => setScore(s)}
+                      disabled={isReadOnly}
                     />
                   ))}
                 </div>
@@ -208,33 +212,36 @@ export default function CheckerTaskPage({ params }: PageProps) {
 
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text">反馈意见</span>
+                  <span className="label-text">备注反馈</span>
                 </label>
                 <textarea
                   className="textarea textarea-bordered"
-                  placeholder="请输入反馈意见..."
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
+                  placeholder="请输入备注反馈..."
+                  value={remarks}
+                  onChange={(e) => setRemarks(e.target.value)}
                   rows={3}
+                  disabled={isReadOnly}
                 />
               </div>
 
-              <div className="flex gap-2 mt-4">
-                <button
-                  className={`btn btn-error flex-1 ${submitting ? 'loading' : ''}`}
-                  onClick={() => handleReview(false)}
-                  disabled={submitting}
-                >
-                  驳回
-                </button>
-                <button
-                  className={`btn btn-success flex-1 ${submitting ? 'loading' : ''}`}
-                  onClick={() => handleReview(true)}
-                  disabled={submitting}
-                >
-                  通过
-                </button>
-              </div>
+              {!isReadOnly && (
+                <div className="flex gap-2 mt-4">
+                  <button
+                    className={`btn btn-error flex-1 ${submitting ? 'loading' : ''}`}
+                    onClick={() => handleReview(false)}
+                    disabled={submitting}
+                  >
+                    驳回
+                  </button>
+                  <button
+                    className={`btn btn-success flex-1 ${submitting ? 'loading' : ''}`}
+                    onClick={() => handleReview(true)}
+                    disabled={submitting}
+                  >
+                    通过
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

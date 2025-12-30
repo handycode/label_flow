@@ -55,7 +55,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       pendingCount: taskPackage.tasks.filter((t) => t.status === 'PENDING').length,
       labelingCount: taskPackage.tasks.filter((t) => t.status === 'LABELING').length,
       labeledCount: taskPackage.tasks.filter((t) => t.status === 'LABELED').length,
+      checkingCount: taskPackage.tasks.filter((t) => t.status === 'CHECKING').length,
       rejectedCount: taskPackage.tasks.filter((t) => t.status === 'REJECTED').length,
+      approvedCount: taskPackage.tasks.filter((t) => t.status === 'APPROVED').length,
     }
 
     return NextResponse.json({

@@ -8,8 +8,12 @@ interface Annotation {
 
 interface Metadata {
   remarks: string;
-  issues: string[];
   score?: number;
+}
+
+interface TaskUser {
+  username: string;
+  email?: string;
 }
 
 interface Props {
@@ -17,6 +21,10 @@ interface Props {
   onMetadataChange: (metadata: Metadata) => void;
   annotations: Annotation[];
   userRole?: string;
+  isReadOnly?: boolean;
+  creator?: TaskUser;
+  labeler?: TaskUser;
+  checker?: TaskUser;
 }
 
 export default function MetadataPanel({
@@ -24,9 +32,40 @@ export default function MetadataPanel({
   onMetadataChange,
   annotations,
   userRole,
+  isReadOnly,
+  creator,
+  labeler,
+  checker,
 }: Props) {
   return (
     <div className="space-y-4">
+      {/* 任务信息 */}
+      <div className="card bg-base-100 shadow">
+        <div className="card-body">
+          <h3 className="card-title text-base">任务信息</h3>
+          <div className="text-sm space-y-2">
+            {creator && (
+              <div className="flex justify-between">
+                <span className="text-base-content/60">创建者:</span>
+                <span className="font-medium">{creator.username}</span>
+              </div>
+            )}
+            {labeler && (
+              <div className="flex justify-between">
+                <span className="text-base-content/60">标注员:</span>
+                <span className="font-medium">{labeler.username}</span>
+              </div>
+            )}
+            {checker && (
+              <div className="flex justify-between">
+                <span className="text-base-content/60">质检员:</span>
+                <span className="font-medium">{checker.username}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* 标注列表 */}
       <div className="card bg-base-100 shadow">
         <div className="card-body">
@@ -54,7 +93,7 @@ export default function MetadataPanel({
       </div>
 
       {/* 备注 */}
-      {userRole === 'CHECKER' && (
+      {userRole !== 'CHECKER' && (
         <div className="card bg-base-100 shadow">
           <div className="card-body">
             <h3 className="card-title text-base">备注</h3>
@@ -66,40 +105,22 @@ export default function MetadataPanel({
                 onMetadataChange({ ...metadata, remarks: e.target.value })
               }
               rows={3}
+              disabled={isReadOnly}
             />
           </div>
         </div>
       )}
 
       {/* 评分 - 仅质检员可见 */}
-      {userRole === 'CHECKER' && (
+      {userRole !== 'CHECKER' && metadata.score && (
         <div className="card bg-base-100 shadow">
           <div className="card-body">
             <h3 className="card-title text-base">质量评分</h3>
-            <div className="flex items-center gap-4">
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map((score) => (
-                  <button
-                    key={score}
-                    onClick={() =>
-                      onMetadataChange({ ...metadata, score })
-                    }
-                    className={`btn btn-sm ${
-                      metadata.score === score
-                        ? 'btn-primary'
-                        : 'btn-outline'
-                    }`}
-                  >
-                    {score}
-                  </button>
-                ))}
-              </div>
-              {metadata.score && (
-                <span className="text-sm font-semibold text-primary">
-                  已评分: {metadata.score}/5
-                </span>
-              )}
-            </div>
+            {metadata.score && (
+            <span className="text-sm font-semibold text-primary">
+              已评分: {metadata.score}/5
+            </span>
+            )}
           </div>
         </div>
       )}
