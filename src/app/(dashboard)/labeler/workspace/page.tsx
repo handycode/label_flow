@@ -24,6 +24,7 @@ interface Package {
 export default function LabelerWorkspacePage() {
   const [packages, setPackages] = useState<Package[]>([])
   const [loading, setLoading] = useState(true)
+  const [claimingPackageId, setClaimingPackageId] = useState<string | null>(null)
   const [filter, setFilter] = useState<'available' | 'my'>('my')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -51,6 +52,7 @@ export default function LabelerWorkspacePage() {
   }, [filter, currentPage])
 
   const claimPackage = async (packageId: string) => {
+    setClaimingPackageId(packageId)
     try {
       const res = await fetch(`/api/packages/${packageId}/claim`, { method: 'POST' })
       const data = await res.json()
@@ -62,10 +64,12 @@ export default function LabelerWorkspacePage() {
         }, 1000)
       } else {
         toast.error(data.error || '领取失败')
+        setClaimingPackageId(null)
       }
     } catch (error) {
       console.error('Failed to claim package:', error)
       toast.error('领取失败')
+      setClaimingPackageId(null)
     }
   }
 
@@ -170,8 +174,16 @@ export default function LabelerWorkspacePage() {
                     <button
                       className="btn btn-primary btn-sm"
                       onClick={() => claimPackage(pkg.id)}
+                      disabled={claimingPackageId === pkg.id}
                     >
-                      领取任务包
+                      {claimingPackageId === pkg.id ? (
+                        <>
+                          <span className="loading loading-spinner loading-xs"></span>
+                          领取中...
+                        </>
+                      ) : (
+                        '领取任务包'
+                      )}
                     </button>
                   )}
                   {filter === 'my' && (
