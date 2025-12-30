@@ -51,16 +51,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       // 创建新的标注
       if (annotations && annotations.length > 0) {
-        await tx.annotation.createMany({
-          data: annotations.map((ann: Record<string, unknown>) => ({
-            taskId: id,
-            type: ann.type,
-            coordinates: ann.coordinates,
-            label: ann.label,
-            frameTime: ann.frameTime,
-            createdById: session.id,
-          })),
-        })
+        for (const ann of annotations) {
+          await tx.annotation.create({
+            data: {
+              taskId: id,
+              type: ann.type as any,
+              coordinates: ann.coordinates as any,
+              label: ann.label as string | undefined,
+              frameTime: ann.frameTime as number | undefined,
+              createdById: session.id,
+            },
+          })
+        }
       }
 
       // 更新或创建元数据
@@ -82,33 +84,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
 
       // 更新任务状态
-      const updateData: Record<string, unknown> = {
-        status: existingChecker ? 'CHECKING' : 'LABELED',
-        labeledAt: new Date(),
-      }
+      const newStatus = existingChecker ? 'CHECKING' : 'LABELED'
 
-      // 如果有质检员已领取该包，则自动分配
-      if (existingChecker) {
-        updateData.checkerId = existingChecker
-        updateData.checkedAt = new Date()
-      }
-
-      return tx.task.update({
+      const updatedTask = await tx.task.update({
         where: { id },
-        data: {
-          ...updateData,
-          operationLogs: {
-            create: {
-              userId: session.id,
-              action: 'submit',
-              oldStatus: 'LABELING',
-              newStatus: updateData.status as string,
-              details: {
-                annotationCount: annotations?.length || 0,
-                autoAssignedToChecker: !!existingChecker,
-              },
-            },
-          },
+        data: existingChecker ? {
+          status: newStatus,
+          labeledAt: new Date(),
+          checkerId: existingChecker,
+          checkedAt: new Date(),
+        } : {
+          status: newStatus,
+          labeledAt: new Date(),
         },
         include: {
           media: true,
@@ -116,6 +103,23 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           metadata: true,
         },
       })
+
+      // 创建操作日志
+      await tx.operationLog.create({
+        data: {
+          taskId: id,
+          userId: session.id,
+          action: 'submit',
+          oldStatus: 'LABELING',
+          newStatus: newStatus,
+          details: {
+            annotationCount: annotations?.length || 0,
+            autoAssignedToChecker: !!existingChecker,
+          },
+        },
+      })
+
+      return updatedTask
     })
 
     return NextResponse.json({ success: true, data: updatedTask })
