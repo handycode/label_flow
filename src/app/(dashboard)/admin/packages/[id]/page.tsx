@@ -106,42 +106,47 @@ export default function PackageDetailPage({ params }: { params: Usable<{id: stri
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center">
         <div>
           <h1 className="text-2xl font-bold">{pkg.name}</h1>
           <p className="text-base-content/60">{pkg.description || '暂无描述'}</p>
         </div>
-        <div className="flex gap-2 items-center">
-          <div className="form-control">
-            <label className="label py-0">
-              <span className="label-text text-xs">任务数（最多1000）</span>
-            </label>
-            <input
-              type="number"
-              className="input input-bordered input-sm w-32"
-              value={distributeLimit}
-              onChange={(e) => setDistributeLimit(Math.min(1000, Math.max(1, parseInt(e.target.value) || 1)))}
-              min="1"
-              max="1000"
-            />
+        <div className="stats shadow ml-2">
+          <div className="stat py-2 px-4">
+            <div className="stat-title">总任务数</div>
+            <div className="stat-value text-lg">{pkg.totalCount}</div>
           </div>
-          <button
-            className={`btn btn-primary ${distributing ? 'loading' : ''}`}
-            onClick={distributeAll}
-            disabled={distributing}
-          >
-            {distributing ? '分配中...' : '分配未分配媒体'}
-          </button>
-          <Link href="/admin/packages" className="btn btn-outline">返回</Link>
         </div>
+        <div className="ml-auto mr-2">
+        {pkg.totalCount < 1000 && (
+          <div className="flex gap-2 items-center">
+            <div className="form-control">
+              <label className="label py-0">
+                <span className="label-text text-xs">任务数（最多1000）</span>
+              </label>
+              <input
+                type="number"
+                className="input input-bordered input-sm w-32"
+                value={distributeLimit}
+                onChange={(e) => setDistributeLimit(Math.min(1000, Math.max(1, parseInt(e.target.value) || 1)))}
+                min="1"
+                max="1000"
+              />
+            </div>
+            <button
+              className={`btn btn-primary ${distributing ? 'loading' : ''}`}
+              onClick={distributeAll}
+              disabled={distributing || pkg.totalCount >= 1000}
+            >
+              {distributing ? '分配中...' : '分配未分配媒体'}
+            </button>
+          </div>
+        )}
+        </div>
+        <Link href="/admin/packages" className="btn btn-outline">返回</Link>
       </div>
 
-      <div className="stats shadow">
-        <div className="stat">
-          <div className="stat-title">总任务数</div>
-          <div className="stat-value text-lg">{pkg.totalCount}</div>
-        </div>
-      </div>
+
 
       <div className="overflow-x-auto">
         <table className="table table-zebra">
