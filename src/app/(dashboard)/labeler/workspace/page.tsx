@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import Pagination from '@/components/Pagination'
 import toast from '@/components/ui/Toast'
 
@@ -172,13 +173,23 @@ export default function LabelerWorkspacePage() {
                       领取任务包
                     </button>
                   )}
-                  {filter === 'my' && hasWorkingTasks && (
-                    <button
-                      className="btn btn-primary btn-sm"
-                      onClick={() => getFirstTask(pkg.id)}
-                    >
-                      继续标注
-                    </button>
+                  {filter === 'my' && (
+                    <>
+                      <Link
+                        href={`/labeler/workspace/package/${pkg.id}`}
+                        className="btn btn-outline btn-sm"
+                      >
+                        查看任务列表
+                      </Link>
+                      {hasWorkingTasks && (
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => getFirstTask(pkg.id)}
+                        >
+                          继续标注
+                        </button>
+                      )}
+                    </>
                   )}
                   {filter === 'available' && !hasClaimableTasks && (
                     <span className="text-sm text-base-content/60">暂无可领取任务</span>
