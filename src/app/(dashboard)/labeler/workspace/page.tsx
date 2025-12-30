@@ -22,7 +22,7 @@ interface Package {
 export default function LabelerWorkspacePage() {
   const [packages, setPackages] = useState<Package[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'available' | 'my'>('available')
+  const [filter, setFilter] = useState<'available' | 'my'>('my')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const pageSize = 12
@@ -97,15 +97,6 @@ export default function LabelerWorkspacePage() {
         <h1 className="text-2xl font-bold">标注工作台</h1>
         <div className="tabs tabs-boxed">
           <button
-            className={`tab ${filter === 'available' ? 'tab-active' : ''}`}
-            onClick={() => {
-              setFilter('available')
-              setCurrentPage(1)
-            }}
-          >
-            可领取任务包
-          </button>
-          <button
             className={`tab ${filter === 'my' ? 'tab-active' : ''}`}
             onClick={() => {
               setFilter('my')
@@ -113,6 +104,15 @@ export default function LabelerWorkspacePage() {
             }}
           >
             我的任务包
+          </button>
+          <button
+            className={`tab ${filter === 'available' ? 'tab-active' : ''}`}
+            onClick={() => {
+              setFilter('available')
+              setCurrentPage(1)
+            }}
+          >
+            可领取任务包
           </button>
         </div>
       </div>
