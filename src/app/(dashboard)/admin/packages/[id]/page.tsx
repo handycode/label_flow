@@ -3,6 +3,7 @@
 import { type Usable, use, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import toast from '@/components/ui/Toast'
+import Pagination from '@/components/Pagination'
 
 interface UserRef { id: string; username: string }
 interface MediaRef { id: string; fileName: string; type: string }
@@ -25,12 +26,15 @@ interface PackageDetail {
   tasks: TaskItem[]
 }
 
+const TASKS_PER_PAGE = 20
+
 export default function PackageDetailPage({ params }: { params: Usable<{id: string}> }) {
   const { id } = use(params)
   const [pkg, setPkg] = useState<PackageDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [distributing, setDistributing] = useState(false)
   const [distributeLimit, setDistributeLimit] = useState(1000)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const fetchDetail = useCallback(async () => {
     setLoading(true)
@@ -94,6 +98,12 @@ export default function PackageDetailPage({ params }: { params: Usable<{id: stri
     return <div className="alert alert-error">任务包不存在 {id}</div>
   }
 
+  // 分页逻辑
+  const totalPages = Math.ceil(pkg.tasks.length / TASKS_PER_PAGE)
+  const startIndex = (currentPage - 1) * TASKS_PER_PAGE
+  const endIndex = startIndex + TASKS_PER_PAGE
+  const currentTasks = pkg.tasks.slice(startIndex, endIndex)
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -144,7 +154,7 @@ export default function PackageDetailPage({ params }: { params: Usable<{id: stri
             </tr>
           </thead>
           <tbody>
-            {pkg.tasks.map((t) => (
+            {currentTasks.map((t) => (
               <tr key={t.id}>
                 <td className="max-w-sm truncate">{t.media?.fileName}</td>
                 <td>
@@ -156,7 +166,23 @@ export default function PackageDetailPage({ params }: { params: Usable<{id: stri
             ))}
           </tbody>
         </table>
+
+        {pkg.tasks.length === 0 && (
+          <div className="text-center py-8 text-base-content/60">
+            暂无任务
+          </div>
+        )}
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </div>
+      )}
     </div>
   )
 }
