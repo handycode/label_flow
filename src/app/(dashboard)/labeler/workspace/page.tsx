@@ -74,7 +74,7 @@ export default function LabelerWorkspacePage() {
       const data = await res.json()
       if (data.success && data.data.items.length > 0) {
         const taskId = data.data.items[0].id
-        window.location.href = `/labeler/workspace/${taskId}`
+        window.location.href = `/labeler/workspace/task/${taskId}`
       } else {
         toast.error('没有找到可标注的任务')
       }

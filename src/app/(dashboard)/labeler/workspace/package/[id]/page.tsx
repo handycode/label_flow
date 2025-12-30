@@ -88,7 +88,7 @@ export default function PackageTaskListPage({ params }: { params: Usable<{ id: s
   }
 
   const handleTaskClick = (taskId: string) => {
-    router.push(`/labeler/workspace/${taskId}`)
+    router.push(`/labeler/workspace/task/${taskId}`)
   }
 
   if (loading) {
