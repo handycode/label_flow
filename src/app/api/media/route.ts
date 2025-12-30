@@ -54,14 +54,38 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/media/sync - 同步 S3 媒体资源
-export async function POST(_request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     await requireRole([Role.ADMIN])
 
-    const s3Objects = await listS3Objects()
+    const { searchParams } = new URL(request.url)
+    const continuationToken = searchParams.get('continuationToken') || undefined
+
+    const MAX_SYNC_COUNT = 500
+    // 获取单批次数据，使用 continuationToken 控制分页
+    const result = await listS3Objects(undefined, MAX_SYNC_COUNT, continuationToken)
+    const s3Objects = result.objects
+    const nextContinuationToken = result.continuationToken
+
+    // 获取数据库中已有的媒体资源数量
+    const existingCount = await prisma.mediaResource.count()
+
+    // 检查是否没有新对象
+    if (s3Objects.length === 0 && !nextContinuationToken) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          created: 0,
+          skipped: 0,
+          total: 0,
+          processed: existingCount,
+          hasMore: false,
+          message: '所有文件已同步完成',
+        },
+      })
+    }
 
     let created = 0
-    let skipped = 0
 
     for (const obj of s3Objects) {
       const existing = await prisma.mediaResource.findUnique({
@@ -69,7 +93,6 @@ export async function POST(_request: NextRequest) {
       })
 
       if (existing) {
-        skipped++
         continue
       }
 
@@ -85,12 +108,18 @@ export async function POST(_request: NextRequest) {
       created++
     }
 
+    const skipped = s3Objects.length - created
+    const newExistingCount = await prisma.mediaResource.count()
+
     return NextResponse.json({
       success: true,
       data: {
         created,
         skipped,
         total: s3Objects.length,
+        processed: newExistingCount,
+        hasMore: !!nextContinuationToken,
+        continuationToken: nextContinuationToken,
       },
     })
   } catch (error) {
