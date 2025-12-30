@@ -3,12 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/auth'
 import { Role } from '@/types'
 
-interface RouteParams {
-  params: Promise<{ id: string }>;
-}
-
 // POST /api/tasks/:id/review - 质检审核 (通过/驳回)
-export async function POST(request: NextRequest, { params }: RouteParams) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await requireRole([Role.CHECKER])
     const { id } = await params

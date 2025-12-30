@@ -3,12 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/auth'
 import { Role } from '@/types'
 
-interface RouteParams {
-  params: Promise<{ id: string }>;
-}
-
 // POST /api/tasks/:id/submit - 提交标注
-export async function POST(request: NextRequest, { params }: RouteParams) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await requireRole([Role.LABELER])
     const { id } = await params
@@ -86,12 +82,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
 
       // 更新任务状态
-      const updateData: {
-        status: string;
-        labeledAt: Date;
-        checkerId?: string;
-        checkedAt?: Date;
-      } = {
+      const updateData: Record<string, unknown> = {
         status: existingChecker ? 'CHECKING' : 'LABELED',
         labeledAt: new Date(),
       }
@@ -111,7 +102,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
               userId: session.id,
               action: 'submit',
               oldStatus: 'LABELING',
-              newStatus: updateData.status,
+              newStatus: updateData.status as string,
               details: {
                 annotationCount: annotations?.length || 0,
                 autoAssignedToChecker: !!existingChecker,
