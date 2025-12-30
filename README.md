@@ -313,11 +313,6 @@ src/
 │   ├── s3/                       # S3 操作
 │   └── prisma/                   # 数据库客户端
 │
-├── stores/                       # 状态管理 (Zustand)
-│   ├── authStore.ts
-│   ├── taskStore.ts
-│   └── annotationStore.ts
-│
 └── types/                        # TypeScript 类型定义
     ├── user.ts
     ├── task.ts
@@ -542,37 +537,40 @@ interface TaskSubmitRequest {
 │      层级        │                         技术选型                             │
 ├──────────────────┼──────────────────────────────────────────────────────────────┤
 │                  │  • Next.js 16 (App Router) - React 全栈框架                  │
-│     前端框架     │  • TypeScript - 类型安全                                     │
-│                  │  • Tailwind CSS - 原子化 CSS                                 │
-│                  │  • Shadcn/ui - UI 组件库                                     │
+│     前端框架     │  • React 19 - UI 库                                          │
+│                  │  • TypeScript - 类型安全                                     │
+│                  │  • Tailwind CSS 4 - 原子化 CSS                               │
+│                  │  • DaisyUI - UI 组件库                                       │
 ├──────────────────┼──────────────────────────────────────────────────────────────┤
-│                  │  • Fabric.js / Konva.js - Canvas 绑定库                      │
+│                  │  • Fabric.js 7 - Canvas 标注引擎                             │
 │     标注引擎     │  • 支持图形绘制、变换、事件处理                              │
 │                  │  • 自定义矩形/椭圆工具组件                                   │
 ├──────────────────┼──────────────────────────────────────────────────────────────┤
 │                  │  • React Player - 视频播放                                   │
 │     媒体处理     │  • HTML5 Canvas API - 视频帧提取                             │
-│                  │  • Pinch-Zoom / use-gesture - 手势缩放                       │
+│                  │  • @use-gesture/react - 手势交互                             │
+│                  │  • 自定义媒体预览组件 (MediaPreview)                         │
 ├──────────────────┼──────────────────────────────────────────────────────────────┤
-│                  │  • Zustand - 轻量状态管理                                    │
-│     状态管理     │  • React Query (TanStack Query) - 服务端状态                 │
-│                  │  • Immer - 不可变数据操作                                    │
+│                  │  • React Context - 全局状态 (MediaPreview, Toast)           │
+│     状态管理     │  • React Hooks - 组件状态管理                                │
+│                  │  • 本地状态优先，避免过度抽象                                │
 ├──────────────────┼──────────────────────────────────────────────────────────────┤
 │                  │  • Next.js API Routes - 后端 API                             │
-│     后端服务     │  • Prisma ORM - 数据库操作                                   │
+│     后端服务     │  • Prisma ORM 7 - 数据库操作                                 │
 │                  │  • AWS SDK v3 - S3 操作                                      │
 ├──────────────────┼──────────────────────────────────────────────────────────────┤
 │                  │  • PostgreSQL - 主数据库                                     │
 │     数据存储     │  • AWS S3 - 媒体文件存储                                     │
-│                  │  • Redis (可选) - 缓存层                                     │
+│                  │  • Prisma Adapter (pg) - 数据库连接池                        │
 ├──────────────────┼──────────────────────────────────────────────────────────────┤
 │                  │  • jose - JWT 处理                                           │
-│     认证授权     │  • bcrypt - 密码哈希                                         │
+│     认证授权     │  • bcryptjs - 密码哈希                                       │
 │                  │  • Next.js Middleware - 路由守卫                             │
 ├──────────────────┼──────────────────────────────────────────────────────────────┤
-│                  │  • Zod - Schema 验证                                         │
-│     工具库       │  • date-fns - 日期处理                                       │
-│                  │  • uuid - ID 生成                                            │
+│                  │  • uuid v13 - ID 生成                                        │
+│     工具库       │  • dayjs - 日期处理                                          │
+│                  │  • lucide-react - 图标库                                     │
+│                  │  • tailwind-merge - 样式合并                                 │
 ├──────────────────┼──────────────────────────────────────────────────────────────┤
 │                  │  • Vercel - 推荐部署平台                                     │
 │     部署方案     │  • Docker - 容器化部署                                       │
@@ -756,61 +754,165 @@ S3_BUCKET_NAME="interviewonly"
   - 质检员看到：包含 LABELED 任务的包
 
 ### 2. 用户体验优化
-- **Toast 通知系统**：全局 toast 提示，替代阻塞式 alert
+- **Toast 通知系统**：全局 toast 提示，支持 success/error/info/warn 类型
+- **媒体预览组件**：全局 MediaPreview 组件，支持图片/视频预览、上下张切换
 - **分页加载**：
   - 管理员任务包列表：9个/页
   - 标注员/质检员工作台：12个/页
+  - 媒体资源列表：20个/页
 - **任务包分配限制**：单次最多分配 1000 个任务，防止数据库压力
 - **实时状态更新**：领取任务包后自动刷新列表，展示最新状态
+- **Loading 状态**：所有异步操作都有 loading 状态提示
 
 ### 3. 数据一致性保证
-- **事务处理**：任务包领取使用 Prisma 事务，确保批量更新的原子性
-- **操作日志**：每个任务状态变更都记录 operation_log，可追溯
+- **事务处理**：任务包领取、标注提交使用 Prisma 事务，确保批量更新的原子性
+- **操作日志**：每个任务状态变更都记录 operation_log，可追溯（action, oldStatus, newStatus, details）
 - **乐观更新**：前端提交后立即反馈，后台异步处理
+- **S3 预签名 URL**：媒体资源通过预签名 URL 访问，安全且高效
 
 ### 4. 开发规范
 - **类型安全**：全链路 TypeScript，从 API 到组件
-- **Next.js 15+ 规范**：动态路由 params 使用 Promise 类型
-- **Prisma ORM**：类型安全的数据库操作
+- **Next.js 15+ 规范**：
+  - 动态路由 params 使用 `Promise<{ id: string }>` 类型
+  - 使用 `use()` hook 解包 Promise params
+- **Prisma ORM**：类型安全的数据库操作，支持事务和关联查询
 - **DaisyUI + Tailwind**：一致的 UI 设计语言
+- **ESLint 规范**：
+  - 最大行长度：120 字符
+  - 无分号风格
+  - 自动排序 imports
+  - 优先使用模板字符串
 
 ### 5. 已实现功能清单
 
 #### Phase 1: 基础架构 ✅
-- [x] Next.js 15 App Router 项目初始化
-- [x] PostgreSQL + Prisma ORM
+- [x] Next.js 16 App Router 项目初始化
+- [x] PostgreSQL + Prisma ORM (with pg adapter)
 - [x] JWT 认证系统 (HttpOnly Cookie)
-- [x] RBAC 权限控制
-- [x] AWS S3 集成
+- [x] RBAC 权限控制 (Admin/Labeler/Checker)
+- [x] AWS S3 集成 (预签名 URL)
+- [x] 数据库种子数据 (seed.ts)
 
 #### Phase 2: 核心功能 ✅
 - [x] 用户管理 (CRUD)
 - [x] 任务包管理 (创建、编辑、删除、批量创建)
-- [x] 任务包分配 (支持限制数量)
+- [x] 任务包分配 (支持限制数量，最多 1000)
 - [x] 任务包级别领取 (标注员/质检员)
-- [x] 标注工作台 (任务包视图)
-- [x] 质检工作台 (任务包视图)
+- [x] 标注工作台 (任务包视图，可领取/我的)
+- [x] 质检工作台 (任务包视图，待质检/我的)
+- [x] 媒体资源管理 (列表、同步 S3、预览)
 - [x] Toast 通知系统
-- [x] 分页组件
+- [x] 分页组件 (Pagination)
+- [x] 全局媒体预览 (MediaPreview)
 
-#### Phase 3: 标注引擎 🚧
-- [x] Canvas 画布基础
-- [x] 矩形工具
-- [x] 椭圆工具
+#### Phase 3: 标注引擎 ✅
+- [x] Canvas 画布基础 (AnnotationCanvas)
+- [x] 矩形工具 (RECT)
+- [x] 椭圆工具 (ELLIPSE)
+- [x] 形状选择和编辑
+- [x] 标注元数据 (MetadataPanel)
+  - [x] 标注列表展示
+  - [x] 备注输入
+  - [x] 问题标记
+- [x] 图片标注
 - [ ] 视频播放控制
 - [ ] 视频帧提取
 - [ ] 画面裁切
 
-#### Phase 4: 增强功能 🚧
+#### Phase 4: 增强功能 ✅
 - [x] 任务状态流转 (PENDING→LABELING→LABELED→CHECKING→APPROVED/REJECTED)
-- [x] 操作日志记录
-- [ ] 质量评分系统
-- [ ] 统计报表
+- [x] 操作日志记录 (OperationLog)
+- [x] 质检评分系统 (1-5 分)
+- [x] 质检反馈意见
+- [ ] 统计报表详细页面
 - [ ] 性能优化
 
-### 6. 待优化项
+### 6. 核心组件说明
+
+#### 全局组件
+- **GlobalUI**: 全局 UI 容器，包含 Toast 和 MediaPreview
+- **Toast**: 自定义 Toast 通知系统，支持多种类型和自动关闭
+- **MediaPreview**: 全局媒体预览组件，支持图片/视频预览、键盘导航
+
+#### 标注组件
+- **AnnotationCanvas**: 标注画布主组件，支持矩形/椭圆绘制
+- **MetadataPanel**: 标注元数据面板，展示标注列表、备注、问题标记
+
+#### 页面组件
+- **标注员工作台**: `/labeler/workspace` - 任务包列表和标注页面
+- **质检员工作台**: `/checker/workspace` - 任务包列表和质检页面
+- **管理员后台**:
+  - `/admin/users` - 用户管理
+  - `/admin/packages` - 任务包管理
+  - `/admin/media` - 媒体资源管理
+
+### 7. API 接口实现
+
+#### 已实现接口
+- ✅ `/api/auth/*` - 认证相关
+- ✅ `/api/users/*` - 用户管理
+- ✅ `/api/packages/*` - 任务包管理
+- ✅ `/api/packages/:id/claim` - 任务包领取
+- ✅ `/api/packages/:id/distribute` - 任务包分配
+- ✅ `/api/tasks/*` - 任务管理
+- ✅ `/api/tasks/:id/claim` - 任务领取
+- ✅ `/api/tasks/:id/submit` - 标注提交
+- ✅ `/api/tasks/:id/review` - 质检审核
+- ✅ `/api/media/*` - 媒体资源管理
+- ✅ `/api/media/presigned/:key` - 预签名 URL
+- ✅ `/api/statistics/overview` - 统计概览
+
+### 8. 待优化项
 - [ ] 任务包进度实时更新（WebSocket）
 - [ ] 标注数据导出（COCO/VOC 格式）
 - [ ] 视频标注增强（时间轴、关键帧）
+- [ ] 统计报表详细页面
 - [ ] 协作功能（评论、@提及）
 - [ ] 移动端适配
+- [ ] 性能优化（虚拟滚动、图片懒加载）
+- [ ] 批量操作（批量删除、批量分配）
+
+## 📝 环境配置
+
+```bash
+# .env 示例
+DATABASE_URL="postgresql://user:password@localhost:5432/label_flow"
+JWT_SECRET="your-jwt-secret-key"
+
+# AWS S3 配置
+AWS_ACCESS_KEY_ID="your-access-key"
+AWS_SECRET_ACCESS_KEY="your-secret-key"
+AWS_REGION="ap-southeast-2"
+S3_BUCKET_NAME="interviewonly"
+
+# 可选配置
+NODE_ENV="development"
+NEXT_PUBLIC_API_URL="http://localhost:3000"
+```
+
+## 🚀 快速开始
+
+```bash
+# 安装依赖
+npm install
+
+# 运行数据库迁移
+npx prisma migrate dev
+
+# 生成 Prisma Client
+npx prisma generate
+
+# 填充种子数据
+npm run db:seed
+
+# 启动开发服务器
+npm run dev
+```
+
+## 📦 测试账号
+
+```
+Admin:   admin@labelflow.com / admin123
+Labeler: labeler@labelflow.com / labeler123
+Checker: checker@labelflow.com / checker123
+```
