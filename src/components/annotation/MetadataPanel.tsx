@@ -18,7 +18,6 @@ interface TaskUser {
 
 interface Props {
   metadata: Metadata;
-  onMetadataChange: (metadata: Metadata) => void;
   annotations: Annotation[];
   userRole?: string;
   isReadOnly?: boolean;
@@ -29,10 +28,8 @@ interface Props {
 
 export default function MetadataPanel({
   metadata,
-  onMetadataChange,
   annotations,
   userRole,
-  isReadOnly,
   creator,
   labeler,
   checker,
@@ -91,25 +88,6 @@ export default function MetadataPanel({
           )}
         </div>
       </div>
-
-      {/* 备注 */}
-      {userRole !== 'CHECKER' && (
-        <div className="card bg-base-100 shadow">
-          <div className="card-body">
-            <h3 className="card-title text-base">备注</h3>
-            <textarea
-              className="textarea textarea-bordered w-full"
-              placeholder="请输入备注信息..."
-              value={metadata.remarks}
-              onChange={(e) =>
-                onMetadataChange({ ...metadata, remarks: e.target.value })
-              }
-              rows={3}
-              disabled={isReadOnly}
-            />
-          </div>
-        </div>
-      )}
 
       {/* 评分 - 仅质检员可见 */}
       {userRole !== 'CHECKER' && metadata.score && (

@@ -181,7 +181,6 @@ export default function CheckerTaskPage({ params }: PageProps) {
               remarks: task.metadata?.remarks || '',
               score: task.metadata?.score,
             }}
-            onMetadataChange={() => {}}
             annotations={task.annotations}
             userRole="CHECKER"
             isReadOnly={true}
