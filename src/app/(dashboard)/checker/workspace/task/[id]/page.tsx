@@ -4,6 +4,7 @@ import { use, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AnnotationCanvas from '@/components/annotation/AnnotationCanvas'
 import MetadataPanel from '@/components/annotation/MetadataPanel'
+import toast from '@/components/ui/Toast'
 
 interface AnnotationData {
   id: string;
@@ -102,10 +103,10 @@ export default function CheckerTaskPage({ params }: PageProps) {
       })
       const data = await res.json()
       if (data.success) {
-        alert(approved ? '已通过！' : '已驳回！')
+        toast.success(approved ? '已通过！' : '已驳回！')
         router.push('/checker/workspace')
       } else {
-        alert(data.error)
+        toast.error(data.error || '提交失败')
       }
     } catch (error) {
       console.error('Failed to review:', error)

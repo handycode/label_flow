@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Pagination from '@/components/Pagination'
+import toast from '@/components/ui/Toast'
 
 interface MediaResource {
   id: string;
@@ -52,8 +53,10 @@ export default function MediaPage() {
       const res = await fetch('/api/media', { method: 'POST' })
       const data = await res.json()
       if (data.success) {
-        alert(`同步完成：新增 ${data.data.created} 个，跳过 ${data.data.skipped} 个`)
+        toast.success(`同步完成：新增 ${data.data.created} 个，跳过 ${data.data.skipped} 个`)
         fetchMedia(1)
+      } else {
+        toast.error('同步失败')
       }
     } catch (error) {
       console.error('Failed to sync media:', error)

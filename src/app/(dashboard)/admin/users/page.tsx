@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Pagination from '@/components/Pagination'
-import { Role, RoleName } from "@/types";
+import toast from '@/components/ui/Toast'
+import { Role, RoleName } from '@/types'
 
 interface User {
   id: string;
@@ -17,7 +18,7 @@ interface User {
   };
 }
 
- const getRoleBadge = (role: string) => {
+const getRoleBadge = (role: string) => {
   const badges: Record<string, string> = {
     ADMIN: 'badge-primary',
     LABELER: 'badge-info',
@@ -81,11 +82,12 @@ export default function UsersPage() {
       })
       const data = await res.json()
       if (data.success) {
+        toast.success('用户创建成功')
         setShowCreateModal(false)
         setNewUser({ username: '', email: '', password: '', role: 'LABELER' })
         fetchUsers(currentPage)
       } else {
-        alert(data.error)
+        toast.error(data.error || '创建用户失败')
       }
     } catch (error) {
       console.error('Failed to create user:', error)
@@ -124,15 +126,16 @@ export default function UsersPage() {
       })
       const data = await res.json()
       if (data.success) {
+        toast.success('用户信息已更新')
         setShowEditModal(false)
         setEditingUser(null)
         fetchUsers(currentPage)
       } else {
-        alert(data.error)
+        toast.error(data.error || '更新用户失败')
       }
     } catch (error) {
       console.error('Failed to update user:', error)
-      alert('更新用户失败')
+      toast.error('更新用户失败')
     }
   }
 

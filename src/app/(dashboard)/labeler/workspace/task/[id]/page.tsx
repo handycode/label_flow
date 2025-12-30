@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import AnnotationCanvas from '@/components/annotation/AnnotationCanvas'
 import Toolbar from '@/components/annotation/Toolbar'
 import MetadataPanel from '@/components/annotation/MetadataPanel'
+import toast from '@/components/ui/Toast'
 
 interface AnnotationData {
   id: string;
@@ -127,7 +128,7 @@ export default function LabelerTaskPage({ params }: PageProps) {
       })
       const data = await res.json()
       if (data.success) {
-        alert('提交成功！')
+        toast.success('提交成功！')
 
         // 获取同一 package 下的下一个待标注任务
         if (task?.packageId) {
@@ -139,6 +140,7 @@ export default function LabelerTaskPage({ params }: PageProps) {
             if (nextTaskData.success && nextTaskData.data.items.length > 0) {
               const nextTaskId = nextTaskData.data.items[0].id
               router.push(`/labeler/workspace/task/${nextTaskId}`)
+              toast.success('让我们继续！')
             } else {
               // 没有下一个任务，返回列表
               router.push(`/labeler/workspace/package/${task.packageId}`)
@@ -151,7 +153,7 @@ export default function LabelerTaskPage({ params }: PageProps) {
           router.push('/labeler/workspace')
         }
       } else {
-        alert(data.error)
+        toast.error(data.error || '提交失败')
       }
     } catch (error) {
       console.error('Failed to submit:', error)
