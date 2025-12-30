@@ -71,6 +71,10 @@ export default function CheckerTaskPage({ params }: PageProps) {
         if (data.success) {
           setTask(data.data)
           setRemarks(data.data.metadata?.remarks || '')
+          // 如果任务已经被质检过，读取已保存的评分
+          if (data.data.qualityScores && data.data.qualityScores.length > 0) {
+            setScore(data.data.qualityScores[0].score)
+          }
           fetchMediaUrl(data.data.media.s3Key)
         }
       } catch (error) {

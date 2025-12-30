@@ -16,7 +16,6 @@ export async function GET(request: NextRequest) {
     const myTasks = searchParams.get('myTasks') === 'true'
 
     const where: Record<string, unknown> = {}
-
     // 根据角色过滤任务
     if (myTasks) {
       // 明确请求"我的任务"，只返回当前用户已领取的

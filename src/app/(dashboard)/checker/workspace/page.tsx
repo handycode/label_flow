@@ -69,7 +69,7 @@ export default function CheckerWorkspacePage() {
 
   const getFirstTask = async (packageId: string) => {
     try {
-      const res = await fetch(`/api/tasks?packageId=${packageId}&myTasks=true&pageSize=1`)
+      const res = await fetch(`/api/tasks?packageId=${packageId}&myTasks=true&status=CHECKING&pageSize=1`)
       const data = await res.json()
       if (data.success && data.data.items.length > 0) {
         const taskId = data.data.items[0].id
