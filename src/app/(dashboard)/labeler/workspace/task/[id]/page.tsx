@@ -16,6 +16,7 @@ interface AnnotationData {
 
 interface Task {
   id: string;
+  packageId: string;
   status: string;
   media: {
     id: string;
@@ -127,7 +128,28 @@ export default function LabelerTaskPage({ params }: PageProps) {
       const data = await res.json()
       if (data.success) {
         alert('提交成功！')
-        router.push('/labeler/workspace')
+
+        // 获取同一 package 下的下一个待标注任务
+        if (task?.packageId) {
+          try {
+            const nextTaskRes = await fetch(
+              `/api/tasks?packageId=${task.packageId}&myTasks=false&status=LABELING&pageSize=1`
+            )
+            const nextTaskData = await nextTaskRes.json()
+            if (nextTaskData.success && nextTaskData.data.items.length > 0) {
+              const nextTaskId = nextTaskData.data.items[0].id
+              router.push(`/labeler/workspace/task/${nextTaskId}`)
+            } else {
+              // 没有下一个任务，返回列表
+              router.push(`/labeler/workspace/package/${task.packageId}`)
+            }
+          } catch (error) {
+            console.error('Failed to get next task:', error)
+            router.push('/labeler/workspace')
+          }
+        } else {
+          router.push('/labeler/workspace')
+        }
       } else {
         alert(data.error)
       }
