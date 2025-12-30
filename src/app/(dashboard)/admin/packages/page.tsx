@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Pagination from '@/components/Pagination'
+import Button from '@/components/ui/Button'
 import toast from '@/components/ui/Toast'
 
 interface TaskPackage {
@@ -310,13 +311,14 @@ export default function PackagesPage() {
               </div>
             )}
             <div className="modal-action">
-              <button
-                className={`btn btn-primary ${creating ? 'loading' : ''}`}
+              <Button
+                type="primary"
                 onClick={createPackage}
-                disabled={creating}
+                loading={creating}
+                loadingText="创建中..."
               >
-                {creating ? '创建中...' : '创建'}
-              </button>
+                创建
+              </Button>
               <button className="btn" onClick={() => setShowCreateModal(false)}>取消</button>
             </div>
           </div>
@@ -329,13 +331,14 @@ export default function PackagesPage() {
             <h3 className="font-bold text-lg">删除任务包</h3>
             <p className="py-4">确认删除任务包「{deleteTarget.name}」？其下所有任务将被一并删除。</p>
             <div className="modal-action">
-              <button
-                className={`btn btn-error ${deleting ? 'loading' : ''}`}
+              <Button
+                type="error"
                 onClick={confirmDelete}
-                disabled={deleting}
+                loading={deleting}
+                loadingText="删除中..."
               >
-                {deleting ? '删除中...' : '确认删除'}
-              </button>
+                确认删除
+              </Button>
               <button className="btn" onClick={() => setShowDeleteModal(false)}>取消</button>
             </div>
           </div>

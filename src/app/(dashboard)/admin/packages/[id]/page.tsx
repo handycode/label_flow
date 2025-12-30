@@ -2,6 +2,7 @@
 
 import { type Usable, use, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import Button from '@/components/ui/Button'
 import toast from '@/components/ui/Toast'
 import Pagination from '@/components/Pagination'
 
@@ -103,7 +104,7 @@ export default function PackageDetailPage({ params }: { params: Usable<{id: stri
   const startIndex = (currentPage - 1) * TASKS_PER_PAGE
   const endIndex = startIndex + TASKS_PER_PAGE
   const currentTasks = pkg.tasks.slice(startIndex, endIndex)
-
+  const MAX_DISTRIBUTE_COUNT = 200
   return (
     <div className="space-y-6">
       <div className="flex items-center">
@@ -118,7 +119,7 @@ export default function PackageDetailPage({ params }: { params: Usable<{id: stri
           </div>
         </div>
         <div className="ml-auto mr-2">
-        {pkg.totalCount < 1000 && (
+          {pkg.totalCount < MAX_DISTRIBUTE_COUNT && (
           <div className="flex gap-2 items-center">
             <div className="form-control">
               <label className="label py-0">
@@ -128,20 +129,24 @@ export default function PackageDetailPage({ params }: { params: Usable<{id: stri
                 type="number"
                 className="input input-bordered input-sm w-32"
                 value={distributeLimit}
-                onChange={(e) => setDistributeLimit(Math.min(1000, Math.max(1, parseInt(e.target.value) || 1)))}
+                onChange={(e) => setDistributeLimit(
+                  Math.min(MAX_DISTRIBUTE_COUNT, Math.max(1, parseInt(e.target.value) || 1))
+                )}
                 min="1"
-                max="1000"
+                max={MAX_DISTRIBUTE_COUNT}
               />
             </div>
-            <button
-              className={`btn btn-primary ${distributing ? 'loading' : ''}`}
+            <Button
+              type="primary"
               onClick={distributeAll}
-              disabled={distributing || pkg.totalCount >= 1000}
+              loading={distributing}
+              disabled={pkg.totalCount >= MAX_DISTRIBUTE_COUNT}
+              loadingText="分配中..."
             >
-              {distributing ? '分配中...' : '分配未分配媒体'}
-            </button>
+              分配未分配媒体
+            </Button>
           </div>
-        )}
+          )}
         </div>
         <Link href="/admin/packages" className="btn btn-outline">返回</Link>
       </div>

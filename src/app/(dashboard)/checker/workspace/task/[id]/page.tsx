@@ -4,6 +4,7 @@ import { use, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AnnotationCanvas from '@/components/annotation/AnnotationCanvas'
 import MetadataPanel from '@/components/annotation/MetadataPanel'
+import Button from '@/components/ui/Button'
 import toast from '@/components/ui/Toast'
 
 interface AnnotationData {
@@ -230,20 +231,22 @@ export default function CheckerTaskPage({ params }: PageProps) {
 
               {!isReadOnly && (
                 <div className="flex gap-2 mt-4">
-                  <button
-                    className={`btn btn-error flex-1 ${submitting ? 'loading' : ''}`}
+                  <Button
+                    type="error"
                     onClick={() => handleReview(false)}
-                    disabled={submitting}
+                    loading={submitting}
+                    className="flex-1"
                   >
                     驳回
-                  </button>
-                  <button
-                    className={`btn btn-success flex-1 ${submitting ? 'loading' : ''}`}
+                  </Button>
+                  <Button
+                    type="success"
                     onClick={() => handleReview(true)}
-                    disabled={submitting}
+                    loading={submitting}
+                    className="flex-1"
                   >
                     通过
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>

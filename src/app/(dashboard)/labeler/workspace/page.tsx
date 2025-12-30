@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Pagination from '@/components/Pagination'
+import Button from '@/components/ui/Button'
 import toast from '@/components/ui/Toast'
 
 interface Package {
@@ -171,20 +172,15 @@ export default function LabelerWorkspacePage() {
 
                 <div className="card-actions justify-end mt-4">
                   {filter === 'available' && hasClaimableTasks && (
-                    <button
-                      className="btn btn-primary btn-sm"
+                    <Button
+                      type="primary"
+                      size="small"
                       onClick={() => claimPackage(pkg.id)}
-                      disabled={claimingPackageId === pkg.id}
+                      loading={claimingPackageId === pkg.id}
+                      loadingText="领取中..."
                     >
-                      {claimingPackageId === pkg.id ? (
-                        <>
-                          <span className="loading loading-spinner loading-xs"></span>
-                          领取中...
-                        </>
-                      ) : (
-                        '领取任务包'
-                      )}
-                    </button>
+                      领取任务包
+                    </Button>
                   )}
                   {filter === 'my' && (
                     <>

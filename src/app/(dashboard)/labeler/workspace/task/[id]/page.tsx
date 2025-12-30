@@ -6,6 +6,7 @@ import AnnotationCanvas from '@/components/annotation/AnnotationCanvas'
 import Toolbar from '@/components/annotation/Toolbar'
 import MetadataPanel from '@/components/annotation/MetadataPanel'
 import toast from '@/components/ui/Toast'
+import Button from '@/components/ui/Button'
 
 interface AnnotationData {
   id: string;
@@ -203,14 +204,16 @@ export default function LabelerTaskPage({ params }: PageProps) {
             返回
           </button>
           {!isReadOnly && (
-            <button
-              className={`btn btn-primary ${submitting ? 'loading' : ''}`}
+            <Button
+              type="primary"
               onClick={handleSubmit}
-              disabled={submitting || annotations.length === 0}
+              loading={submitting}
+              disabled={annotations.length === 0}
+              loadingText="提交中..."
               title={annotations.length === 0 ? '请至少添加一个标注' : ''}
             >
-              {submitting ? '提交中...' : '提交标注'}
-            </button>
+              提交标注
+            </Button>
           )}
         </div>
       </div>

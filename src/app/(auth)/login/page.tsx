@@ -98,13 +98,15 @@ export default function LoginPage() {
             </div>
 
             <div className="form-control mt-6">
-              <button
-                type="submit"
-                className={`btn btn-primary ${loading ? 'loading' : ''}`}
-                disabled={loading}
+              <Button
+                htmlType="submit"
+                type="primary"
+                block
+                loading={loading}
+                loadingText="登录中..."
               >
-                {loading ? '登录中...' : '登录'}
-              </button>
+                登录
+              </Button>
             </div>
           </form>
         </div>
