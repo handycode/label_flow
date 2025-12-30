@@ -22,6 +22,8 @@ interface TaskPackage {
   rejectedCount?: number;
 }
 
+const MAX_DISTRIBUTE_COUNT = 200
+
 export default function PackagesPage() {
   const [packages, setPackages] = useState<TaskPackage[]>([])
   const [loading, setLoading] = useState(true)
@@ -33,7 +35,7 @@ export default function PackagesPage() {
   const [formName, setFormName] = useState('')
   const [formDesc, setFormDesc] = useState('')
   const [includeUnassigned, setIncludeUnassigned] = useState(true)
-  const [taskCount, setTaskCount] = useState(1000)
+  const [taskCount, setTaskCount] = useState(MAX_DISTRIBUTE_COUNT)
   const [packageCount, setPackageCount] = useState(1)
   const [creating, setCreating] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -299,14 +301,16 @@ export default function PackagesPage() {
             </div>
             {includeUnassigned && (
               <div className="form-control mb-3">
-                <label className="label"><span className="label-text">任务数量（最多1000）</span></label>
+                <label className="label"><span className="label-text">任务数量（最多{MAX_DISTRIBUTE_COUNT}）</span></label>
                 <input
                   type="number"
                   className="input input-bordered"
                   value={taskCount}
-                  onChange={(e) => setTaskCount(Math.min(1000, Math.max(1, parseInt(e.target.value) || 1)))}
+                  onChange={(e) => setTaskCount(
+                    Math.min(MAX_DISTRIBUTE_COUNT, Math.max(1, parseInt(e.target.value) || 1))
+                  )}
                   min="1"
-                  max="1000"
+                  max={MAX_DISTRIBUTE_COUNT}
                 />
               </div>
             )}
