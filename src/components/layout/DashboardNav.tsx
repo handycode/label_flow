@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import type { SessionUser } from '@/types'
+import { RoleName, type SessionUser } from '@/types'
 import { cn } from '@/lib/utils'
+import { UserCircle2Icon } from "lucide-react"
 
 interface Props {
   user: SessionUser;
@@ -89,7 +90,8 @@ export default function DashboardNav({ user }: Props) {
         <div className="dropdown dropdown-end">
           <div tabIndex={0} role="button" className="btn btn-ghost">
             <div className="flex items-center gap-2">
-              <span className="badge badge-xs badge-primary">{user.role}</span>
+              <UserCircle2Icon />
+              <span className="badge badge-xs badge-primary">{RoleName[user.role]}</span>
               <span>{user.username}</span>
             </div>
           </div>
