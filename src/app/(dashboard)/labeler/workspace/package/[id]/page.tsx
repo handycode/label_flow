@@ -43,6 +43,7 @@ export default function PackageTaskListPage({ params }: { params: Usable<{ id: s
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
+  const [statusFilter, setStatusFilter] = useState<string>('LABELING')
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -55,8 +56,9 @@ export default function PackageTaskListPage({ params }: { params: Usable<{ id: s
       }
 
       // 获取任务列表
+      const statusParam = statusFilter !== 'ALL' ? `&status=${statusFilter}` : ''
       const tasksRes = await fetch(
-        `/api/tasks?packageId=${id}&myTasks=true&page=${currentPage}&pageSize=${TASKS_PER_PAGE}`
+        `/api/tasks?packageId=${id}&myTasks=true&page=${currentPage}&pageSize=${TASKS_PER_PAGE}${statusParam}`
       )
       const tasksData = await tasksRes.json()
       if (tasksData.success) {
@@ -70,7 +72,7 @@ export default function PackageTaskListPage({ params }: { params: Usable<{ id: s
     } finally {
       setLoading(false)
     }
-  }, [id, currentPage])
+  }, [id, currentPage, statusFilter])
 
   useEffect(() => {
     fetchData()
@@ -132,10 +134,6 @@ export default function PackageTaskListPage({ params }: { params: Usable<{ id: s
           <div className="stat-value text-2xl text-info">{pkg.labelingCount || 0}</div>
         </div>
         <div className="stat">
-          <div className="stat-title">已标注</div>
-          <div className="stat-value text-2xl text-warning">{pkg.labeledCount || 0}</div>
-        </div>
-        <div className="stat">
           <div className="stat-title">已驳回</div>
           <div className="stat-value text-2xl text-error">{pkg.rejectedCount || 0}</div>
         </div>
@@ -148,10 +146,44 @@ export default function PackageTaskListPage({ params }: { params: Usable<{ id: s
       {/* 任务列表 */}
       <div className="card bg-base-100 shadow">
         <div className="card-body">
-          <h2 className="card-title">
-            我的任务
-            <span className="badge badge-primary">{totalCount}</span>
-          </h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="card-title">
+              我的任务
+              <span className="badge badge-primary">{totalCount}</span>
+            </h2>
+            <div className="tabs tabs-boxed">
+              <button
+                className={`tab tab-sm ${statusFilter === 'ALL' ? 'tab-active' : ''}`}
+                onClick={() => { setStatusFilter('ALL'); setCurrentPage(1) }}
+              >
+                全部
+              </button>
+              <button
+                className={`tab tab-sm ${statusFilter === 'LABELING' ? 'tab-active' : ''}`}
+                onClick={() => { setStatusFilter('LABELING'); setCurrentPage(1) }}
+              >
+                标注中
+              </button>
+              <button
+                className={`tab tab-sm ${statusFilter === 'LABELED' ? 'tab-active' : ''}`}
+                onClick={() => { setStatusFilter('LABELED'); setCurrentPage(1) }}
+              >
+                已标注
+              </button>
+              <button
+                className={`tab tab-sm ${statusFilter === 'REJECTED' ? 'tab-active' : ''}`}
+                onClick={() => { setStatusFilter('REJECTED'); setCurrentPage(1) }}
+              >
+                已驳回
+              </button>
+              <button
+                className={`tab tab-sm ${statusFilter === 'APPROVED' ? 'tab-active' : ''}`}
+                onClick={() => { setStatusFilter('APPROVED'); setCurrentPage(1) }}
+              >
+                已通过
+              </button>
+            </div>
+          </div>
 
           <div className="overflow-x-auto">
             <table className="table table-zebra">
