@@ -182,7 +182,8 @@ export default function LabelerTaskPage({ params }: PageProps) {
             <button
               className={`btn btn-primary ${submitting ? 'loading' : ''}`}
               onClick={handleSubmit}
-              disabled={submitting}
+              disabled={submitting || annotations.length === 0}
+              title={annotations.length === 0 ? '请至少添加一个标注' : ''}
             >
               {submitting ? '提交中...' : '提交标注'}
             </button>
@@ -216,7 +217,6 @@ export default function LabelerTaskPage({ params }: PageProps) {
         <div className="w-80 flex-shrink-0">
           <MetadataPanel
             metadata={metadata}
-            onMetadataChange={isReadOnly ? () => {} : setMetadata}
             annotations={annotations}
             userRole={userRole || undefined}
             isReadOnly={isReadOnly}
