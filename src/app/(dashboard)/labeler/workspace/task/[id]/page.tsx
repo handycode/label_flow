@@ -27,6 +27,7 @@ interface Task {
   metadata?: {
     remarks?: string;
     issues?: string[];
+    score?: number;
     videoClips?: unknown[];
     croppedAreas?: unknown[];
   };
@@ -44,11 +45,16 @@ export default function LabelerTaskPage({ params }: PageProps) {
   const [mediaUrl, setMediaUrl] = useState<string>('')
   const [currentTool, setCurrentTool] = useState<'select' | 'rect' | 'ellipse'>('select')
   const [annotations, setAnnotations] = useState<AnnotationData[]>([])
-  const [metadata, setMetadata] = useState({
+  const [metadata, setMetadata] = useState<{
+    remarks: string;
+    issues: string[];
+    score?: number;
+  }>({
     remarks: '',
-    issues: [] as string[],
+    issues: [],
   })
   const [submitting, setSubmitting] = useState(false)
+  const [userRole, setUserRole] = useState<string | null>(null)
 
   const fetchMediaUrl = async (s3Key: string) => {
     try {
@@ -74,6 +80,7 @@ export default function LabelerTaskPage({ params }: PageProps) {
             setMetadata({
               remarks: data.data.metadata.remarks || '',
               issues: data.data.metadata.issues || [],
+              score: data.data.metadata.score,
             })
           }
           // 获取媒体预签名 URL
@@ -85,7 +92,22 @@ export default function LabelerTaskPage({ params }: PageProps) {
         setLoading(false)
       }
     }
+
+    // 获取用户角色
+    const fetchUserRole = async () => {
+      try {
+        const res = await fetch('/api/auth/me')
+        const data = await res.json()
+        if (data.success) {
+          setUserRole(data.data.role)
+        }
+      } catch (error) {
+        console.error('Failed to fetch user role:', error)
+      }
+    }
+
     fetchTask()
+    fetchUserRole()
   }, [id])
 
 
@@ -186,6 +208,7 @@ export default function LabelerTaskPage({ params }: PageProps) {
             metadata={metadata}
             onMetadataChange={setMetadata}
             annotations={annotations}
+            userRole={userRole || undefined}
           />
         </div>
       </div>

@@ -9,36 +9,22 @@ interface Annotation {
 interface Metadata {
   remarks: string;
   issues: string[];
+  score?: number;
 }
 
 interface Props {
   metadata: Metadata;
   onMetadataChange: (metadata: Metadata) => void;
   annotations: Annotation[];
+  userRole?: string;
 }
 
 export default function MetadataPanel({
   metadata,
   onMetadataChange,
   annotations,
+  userRole,
 }: Props) {
-  const addIssue = () => {
-    const issue = prompt('请输入问题描述:')
-    if (issue) {
-      onMetadataChange({
-        ...metadata,
-        issues: [...metadata.issues, issue],
-      })
-    }
-  }
-
-  const removeIssue = (index: number) => {
-    onMetadataChange({
-      ...metadata,
-      issues: metadata.issues.filter((_, i) => i !== index),
-    })
-  }
-
   return (
     <div className="space-y-4">
       {/* 标注列表 */}
@@ -68,52 +54,55 @@ export default function MetadataPanel({
       </div>
 
       {/* 备注 */}
-      <div className="card bg-base-100 shadow">
-        <div className="card-body">
-          <h3 className="card-title text-base">备注</h3>
-          <textarea
-            className="textarea textarea-bordered w-full"
-            placeholder="请输入备注信息..."
-            value={metadata.remarks}
-            onChange={(e) =>
-              onMetadataChange({ ...metadata, remarks: e.target.value })
-            }
-            rows={3}
-          />
-        </div>
-      </div>
-
-      {/* 问题标记 */}
-      <div className="card bg-base-100 shadow">
-        <div className="card-body">
-          <div className="flex items-center justify-between">
-            <h3 className="card-title text-base">问题标记</h3>
-            <button className="btn btn-xs btn-primary" onClick={addIssue}>
-              添加
-            </button>
+      {userRole === 'CHECKER' && (
+        <div className="card bg-base-100 shadow">
+          <div className="card-body">
+            <h3 className="card-title text-base">备注</h3>
+            <textarea
+              className="textarea textarea-bordered w-full"
+              placeholder="请输入备注信息..."
+              value={metadata.remarks}
+              onChange={(e) =>
+                onMetadataChange({ ...metadata, remarks: e.target.value })
+              }
+              rows={3}
+            />
           </div>
-          {metadata.issues.length === 0 ? (
-            <p className="text-sm text-base-content/60">暂无问题</p>
-          ) : (
-            <ul className="space-y-2">
-              {metadata.issues.map((issue, index) => (
-                <li
-                  key={index}
-                  className="flex items-center justify-between p-2 bg-error/10 rounded"
-                >
-                  <span className="text-sm text-error">{issue}</span>
-                  <button
-                    className="btn btn-ghost btn-xs"
-                    onClick={() => removeIssue(index)}
-                  >
-                    ✕
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
-      </div>
+      )}
+
+      {/* 评分 - 仅质检员可见 */}
+      {userRole === 'CHECKER' && (
+        <div className="card bg-base-100 shadow">
+          <div className="card-body">
+            <h3 className="card-title text-base">质量评分</h3>
+            <div className="flex items-center gap-4">
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((score) => (
+                  <button
+                    key={score}
+                    onClick={() =>
+                      onMetadataChange({ ...metadata, score })
+                    }
+                    className={`btn btn-sm ${
+                      metadata.score === score
+                        ? 'btn-primary'
+                        : 'btn-outline'
+                    }`}
+                  >
+                    {score}
+                  </button>
+                ))}
+              </div>
+              {metadata.score && (
+                <span className="text-sm font-semibold text-primary">
+                  已评分: {metadata.score}/5
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
