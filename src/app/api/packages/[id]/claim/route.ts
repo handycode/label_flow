@@ -54,6 +54,12 @@ export async function POST(
           }
         })
 
+        // Mark package as active once claimed
+        await tx.taskPackage.update({
+          where: { id: packageId },
+          data: { status: 'ACTIVE' },
+        })
+
         // Create operation logs
         await tx.operationLog.createMany({
           data: claimableTasks.map(task => ({
@@ -110,6 +116,12 @@ export async function POST(
             checkerId: session.id,
             checkedAt: new Date()
           }
+        })
+
+        // Mark package as active once claimed
+        await tx.taskPackage.update({
+          where: { id: packageId },
+          data: { status: 'ACTIVE' },
         })
 
         // Create operation logs

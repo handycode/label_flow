@@ -163,13 +163,13 @@ export default function PackagesPage() {
   }
 
   const getStatusBadge = (status: string) => {
-    const badges: Record<string, string> = {
-      DRAFT: 'badge-ghost',
-      ACTIVE: 'badge-primary',
-      COMPLETED: 'badge-success',
-      ARCHIVED: 'badge-neutral',
+    const badges: Record<string, { class: string; label: string }> = {
+      DRAFT: { class: 'badge-ghost', label: '草稿' },
+      ACTIVE: { class: 'badge-primary', label: '进行中' },
+      COMPLETED: { class: 'badge-success', label: '已完成' },
+      ARCHIVED: { class: 'badge-neutral', label: '已归档' },
     }
-    return badges[status] || 'badge-ghost'
+    return badges[status] || { class: 'badge-ghost', label: status }
   }
 
   if (loading) {
@@ -193,47 +193,49 @@ export default function PackagesPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {packages.map((pkg) => (
-          <div key={pkg.id} className="card bg-base-100 shadow-xl">
-            <div className="card-body">
-              <h2 className="card-title">
-                {pkg.name}
-                <span className={`badge ${getStatusBadge(pkg.status)}`}>
-                  {pkg.status}
-                </span>
-              </h2>
-              <p className="text-base-content/60">{pkg.description || '暂无描述'}</p>
+        {packages.map((pkg) => {
+          const statusMeta = getStatusBadge(pkg.status)
+          return (
+            <div key={pkg.id} className="card bg-base-100 shadow-xl">
+              <div className="card-body">
+                <h2 className="card-title">
+                  {pkg.name}
+                  <span className={`badge ${statusMeta.class}`}>
+                    {statusMeta.label}
+                  </span>
+                </h2>
+                <p className="text-base-content/60">{pkg.description || '暂无描述'}</p>
 
-              <div className="stats stats-vertical shadow mt-4">
-                <div className="stat py-2">
-                  <div className="stat-title">总任务数</div>
-                  <div className="stat-value text-lg">{pkg.totalCount}</div>
-                </div>
-                <div className="stat py-2">
-                  <div className="stat-title">进度</div>
-                  <div className="flex gap-1 flex-wrap">
-                    <span className="badge badge-ghost badge-sm">待分配: {pkg.pendingCount || 0}</span>
-                    <span className="badge badge-info badge-sm">标注中: {pkg.labelingCount || 0}</span>
-                    <span className="badge badge-warning badge-sm">待质检: {pkg.labeledCount || 0}</span>
-                    <span className="badge badge-success badge-sm">已通过: {pkg.approvedCount || 0}</span>
+                <div className="stats stats-vertical shadow mt-4">
+                  <div className="stat py-2">
+                    <div className="stat-title">总任务数</div>
+                    <div className="stat-value text-lg">{pkg.totalCount}</div>
+                  </div>
+                  <div className="stat py-2">
+                    <div className="stat-title">进度</div>
+                    <div className="flex gap-1 flex-wrap">
+                      <span className="badge badge-ghost badge-sm">待分配: {pkg.pendingCount || 0}</span>
+                      <span className="badge badge-info badge-sm">标注中: {pkg.labelingCount || 0}</span>
+                      <span className="badge badge-warning badge-sm">待质检: {pkg.labeledCount || 0}</span>
+                      <span className="badge badge-success badge-sm">已通过: {pkg.approvedCount || 0}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="card-actions justify-between mt-4">
-                <button
-                  className="btn btn-sm btn-error btn-outline"
-                  onClick={() => openDeleteModal(pkg)}
+                <div className="card-actions justify-between mt-4">
+                  <button
+                    className="btn btn-sm btn-error btn-outline"
+                    onClick={() => openDeleteModal(pkg)}
                 >
-                  删除
-                </button>
-                <Link href={`/admin/packages/${pkg.id}`} className="btn btn-sm btn-outline">
-                  查看详情
-                </Link>
+                    删除
+                  </button>
+                  <Link href={`/admin/packages/${pkg.id}`} className="btn btn-sm btn-outline">
+                    查看详情
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          )})}
       </div>
 
       {/* 分页 */}
