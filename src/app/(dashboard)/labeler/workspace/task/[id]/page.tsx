@@ -60,6 +60,10 @@ export default function LabelerTaskPage({ params }: PageProps) {
   const [userRole, setUserRole] = useState<string | null>(null)
   const [isReadOnly, setIsReadOnly] = useState(false)
 
+  const handleDeleteAnnotation = (id: string) => {
+    setAnnotations((prev) => prev.filter((ann) => ann.id !== id))
+  }
+
   const fetchMediaUrl = async (s3Key: string) => {
     try {
       const res = await fetch(`/api/media/presigned/${encodeURIComponent(s3Key)}`)
@@ -188,8 +192,11 @@ export default function LabelerTaskPage({ params }: PageProps) {
             <h1 className="text-xl font-bold">
               {isReadOnly ? '查看任务' : '标注任务'}: {task.media.fileName}
             </h1>
-            {isReadOnly && (
+            {task.status === 'APPROVED' &&
               <span className="badge badge-success">已通过</span>
+            }
+            {task.status === 'REJECTED' && (
+              <span className="badge badge-error">已驳回</span>
             )}
           </div>
           <p className="text-sm text-base-content/60">
@@ -212,7 +219,7 @@ export default function LabelerTaskPage({ params }: PageProps) {
               loadingText="提交中..."
               title={annotations.length === 0 ? '请至少添加一个标注' : ''}
             >
-              提交标注
+              {task.status === 'REJECTED' ? '重新提交' : '提交标注'}
             </Button>
           )}
         </div>
@@ -251,6 +258,7 @@ export default function LabelerTaskPage({ params }: PageProps) {
             creator={task.createdBy}
             labeler={task.labeler}
             checker={task.checker}
+            onDeleteAnnotation={isReadOnly ? undefined : handleDeleteAnnotation}
           />
         </div>
       </div>

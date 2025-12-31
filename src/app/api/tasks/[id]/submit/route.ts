@@ -34,7 +34,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ success: false, error: 'Task not found' }, { status: 404 })
     }
 
-    if (task.status !== 'LABELING' || task.labelerId !== session.id) {
+    const canSubmitStatuses = ['LABELING', 'REJECTED']
+    if (!canSubmitStatuses.includes(task.status) || task.labelerId !== session.id) {
       return NextResponse.json(
         { success: false, error: 'You cannot submit this task' },
         { status: 403 }
@@ -84,6 +85,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
 
       // 更新任务状态
+      const oldStatus = task.status
       const newStatus = existingChecker ? 'CHECKING' : 'LABELED'
 
       const updatedTask = await tx.task.update({
@@ -110,7 +112,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           taskId: id,
           userId: session.id,
           action: 'submit',
-          oldStatus: 'LABELING',
+          oldStatus,
           newStatus: newStatus,
           details: {
             annotationCount: annotations?.length || 0,

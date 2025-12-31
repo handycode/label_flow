@@ -24,6 +24,7 @@ interface Props {
   creator?: TaskUser;
   labeler?: TaskUser;
   checker?: TaskUser;
+  onDeleteAnnotation?: (id: string) => void;
 }
 
 export default function MetadataPanel({
@@ -33,6 +34,8 @@ export default function MetadataPanel({
   creator,
   labeler,
   checker,
+  isReadOnly = false,
+  onDeleteAnnotation,
 }: Props) {
   return (
     <div className="space-y-4">
@@ -79,9 +82,19 @@ export default function MetadataPanel({
                   <span className="text-sm">
                     #{index + 1} {ann.type === 'RECT' ? '矩形' : '椭圆'}
                   </span>
-                  {ann.label && (
-                    <span className="badge badge-sm">{ann.label}</span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {ann.label && (
+                      <span className="badge badge-sm">{ann.label}</span>
+                    )}
+                    {!isReadOnly && onDeleteAnnotation && (
+                      <button
+                        className="btn btn-xs btn-error"
+                        onClick={() => onDeleteAnnotation(ann.id)}
+                      >
+                        删除
+                      </button>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>

@@ -41,6 +41,7 @@ export default function AnnotationCanvas({
   const [isVideoLoaded, setIsVideoLoaded] = useState(false)
   const [videoDuration, setVideoDuration] = useState(100)
   const [scale, setScale] = useState(1)
+  const [hasSelection, setHasSelection] = useState(false)
 
   // 初始化 Fabric Canvas
   useEffect(() => {
@@ -245,6 +246,21 @@ export default function AnnotationCanvas({
     onAnnotationsChange(newAnnotations)
   }, [onAnnotationsChange, readOnly, mediaType, videoTime, scale])
 
+  // 删除当前选中的标注
+  const deleteSelectedAnnotation = useCallback(() => {
+    if (readOnly || !fabricRef.current) return
+
+    const canvas = fabricRef.current
+    const active = canvas.getActiveObject()
+    if (!active || (active as any).isBackground) return
+
+    canvas.remove(active)
+    canvas.discardActiveObject()
+    setHasSelection(false)
+    canvas.requestRenderAll()
+    saveAnnotations()
+  }, [readOnly, saveAnnotations])
+
   // 处理绘制工具
   useEffect(() => {
     if (!fabricRef.current || readOnly) return
@@ -380,6 +396,46 @@ export default function AnnotationCanvas({
     }
   }, [currentTool, saveAnnotations, isDrawing, readOnly, onToolChange])
 
+  // 监听选中对象变化，决定是否可删除
+  useEffect(() => {
+    const canvas = fabricRef.current
+    if (!canvas) return
+
+    const updateSelection = () => {
+      const active = canvas.getActiveObject()
+      const selectable = !!active && !(active as any).isBackground
+      setHasSelection(selectable)
+    }
+
+    const clearSelection = () => setHasSelection(false)
+
+    canvas.on('selection:created', updateSelection)
+    canvas.on('selection:updated', updateSelection)
+    canvas.on('selection:cleared', clearSelection)
+
+    return () => {
+      canvas.off('selection:created', updateSelection)
+      canvas.off('selection:updated', updateSelection)
+      canvas.off('selection:cleared', clearSelection)
+    }
+  }, [])
+
+  // 键盘 Delete/Backspace 删除选中标注（仅编辑模式）
+  useEffect(() => {
+    if (readOnly) return
+
+    const handleKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      if (target && ['INPUT', 'TEXTAREA'].includes(target.tagName)) return
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        deleteSelectedAnnotation()
+      }
+    }
+
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [readOnly, deleteSelectedAnnotation])
+
   // 缩放控制
   const handleZoom = (delta: number) => {
     if (!fabricRef.current) return
@@ -436,6 +492,15 @@ export default function AnnotationCanvas({
         <button className="btn btn-xs" onClick={() => { setZoom(1); fabricRef.current?.setZoom(1) }}>
           重置
         </button>
+        {!readOnly && (
+          <button
+            className="btn btn-xs btn-error"
+            disabled={!hasSelection}
+            onClick={deleteSelectedAnnotation}
+          >
+            删除标注
+          </button>
+        )}
       </div>
 
       {/* 视频控制 (仅视频) */}
