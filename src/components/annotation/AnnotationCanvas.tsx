@@ -272,6 +272,7 @@ export default function AnnotationCanvas({
       canvas.isDrawingMode = false
       canvas.selection = true
       canvas.forEachObject((obj) => {
+        if ((obj as any).isBackground) return
         obj.selectable = true
         obj.evented = true
       })
@@ -279,6 +280,7 @@ export default function AnnotationCanvas({
       canvas.isDrawingMode = false
       canvas.selection = false
       canvas.forEachObject((obj) => {
+        if ((obj as any).isBackground) return
         obj.selectable = false
         obj.evented = false
       })
