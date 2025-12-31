@@ -220,16 +220,16 @@ export default function PackagesPage() {
                 </div>
               </div>
 
-              <div className="card-actions justify-end mt-4">
-                <Link href={`/admin/packages/${pkg.id}`} className="btn btn-sm btn-outline">
-                  查看详情
-                </Link>
+              <div className="card-actions justify-between mt-4">
                 <button
                   className="btn btn-sm btn-error btn-outline"
                   onClick={() => openDeleteModal(pkg)}
                 >
                   删除
                 </button>
+                <Link href={`/admin/packages/${pkg.id}`} className="btn btn-sm btn-outline">
+                  查看详情
+                </Link>
               </div>
             </div>
           </div>
