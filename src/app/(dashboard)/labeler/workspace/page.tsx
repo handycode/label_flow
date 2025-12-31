@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Pagination from '@/components/Pagination'
+import Button from '@/components/ui/Button'
 import toast from '@/components/ui/Toast'
 
 interface Package {
@@ -24,6 +25,7 @@ interface Package {
 export default function LabelerWorkspacePage() {
   const [packages, setPackages] = useState<Package[]>([])
   const [loading, setLoading] = useState(true)
+  const [claimingPackageId, setClaimingPackageId] = useState<string | null>(null)
   const [filter, setFilter] = useState<'available' | 'my'>('my')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -51,6 +53,7 @@ export default function LabelerWorkspacePage() {
   }, [filter, currentPage])
 
   const claimPackage = async (packageId: string) => {
+    setClaimingPackageId(packageId)
     try {
       const res = await fetch(`/api/packages/${packageId}/claim`, { method: 'POST' })
       const data = await res.json()
@@ -62,10 +65,12 @@ export default function LabelerWorkspacePage() {
         }, 1000)
       } else {
         toast.error(data.error || '领取失败')
+        setClaimingPackageId(null)
       }
     } catch (error) {
       console.error('Failed to claim package:', error)
       toast.error('领取失败')
+      setClaimingPackageId(null)
     }
   }
 
@@ -137,16 +142,6 @@ export default function LabelerWorkspacePage() {
                     <div className="stat-title text-xs">任务总数</div>
                     <div className="stat-value text-2xl">{pkg._count.tasks}</div>
                   </div>
-                  {filter === 'available' && (
-                    <>
-                      <div className="stat py-2">
-                        <div className="stat-title text-xs">待领取</div>
-                        <div className="stat-value text-2xl text-warning">
-                          {(pkg.pendingCount || 0) + (pkg.rejectedCount || 0)}
-                        </div>
-                      </div>
-                    </>
-                  )}
                   {filter === 'my' && (
                     <>
                       <div className="stat py-2">
@@ -167,12 +162,15 @@ export default function LabelerWorkspacePage() {
 
                 <div className="card-actions justify-end mt-4">
                   {filter === 'available' && hasClaimableTasks && (
-                    <button
-                      className="btn btn-primary btn-sm"
+                    <Button
+                      type="primary"
+                      size="small"
                       onClick={() => claimPackage(pkg.id)}
+                      loading={claimingPackageId === pkg.id}
+                      loadingText="领取中..."
                     >
                       领取任务包
-                    </button>
+                    </Button>
                   )}
                   {filter === 'my' && (
                     <>

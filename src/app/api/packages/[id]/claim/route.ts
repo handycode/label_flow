@@ -14,7 +14,7 @@ export async function POST(
     // Check if package exists
     const pkg = await prisma.taskPackage.findUnique({
       where: { id: packageId },
-      include: { tasks: true }
+      select: { id: true, name: true }
     })
 
     if (!pkg) {
@@ -27,23 +27,25 @@ export async function POST(
     // Role-based claiming logic
     if (session.role === Role.LABELER) {
       // Labelers claim PENDING or REJECTED tasks
-      const claimableTasks = pkg.tasks.filter(
-        (task: any) => task.status === 'PENDING' || task.status === 'REJECTED'
-      )
+      return await prisma.$transaction(async (tx) => {
+        // Get claimable task IDs
+        const claimableTasks = await tx.task.findMany({
+          where: {
+            packageId,
+            status: { in: ['PENDING', 'REJECTED'] }
+          },
+          select: { id: true }
+        })
 
-      if (claimableTasks.length === 0) {
-        return NextResponse.json(
-          { success: false, error: '该任务包没有可领取的任务' },
-          { status: 400 }
-        )
-      }
+        if (claimableTasks.length === 0) {
+          throw new Error('NO_CLAIMABLE_TASKS')
+        }
 
-      // Bulk update tasks
-      await prisma.$transaction(async (tx) => {
-        // Update all claimable tasks
+        // Batch update all claimable tasks
         await tx.task.updateMany({
           where: {
-            id: { in: claimableTasks.map((t: any) => t.id) }
+            packageId,
+            status: { in: ['PENDING', 'REJECTED'] }
           },
           data: {
             status: 'LABELING',
@@ -52,46 +54,56 @@ export async function POST(
           }
         })
 
-        // Create operation logs for each task
-        for (const task of claimableTasks) {
-          await tx.operationLog.create({
-            data: {
-              taskId: task.id,
-              userId: session.id,
-              action: 'CLAIM_PACKAGE',
-              details: { packageId: packageId, packageName: pkg.name }
-            }
-          })
-        }
-      })
+        // Create operation logs
+        await tx.operationLog.createMany({
+          data: claimableTasks.map(task => ({
+            taskId: task.id,
+            userId: session.id,
+            action: 'CLAIM_PACKAGE',
+            details: { packageId, packageName: pkg.name }
+          }))
+        })
 
-      return NextResponse.json({
-        success: true,
-        data: {
-          packageId,
-          claimedCount: claimableTasks.length,
-          message: `成功领取 ${claimableTasks.length} 个标注任务`
+        return claimableTasks.length
+      }).then(claimedCount => {
+        return NextResponse.json({
+          success: true,
+          data: {
+            packageId,
+            claimedCount,
+            message: `成功领取 ${claimedCount} 个标注任务`
+          }
+        })
+      }).catch(error => {
+        if (error.message === 'NO_CLAIMABLE_TASKS') {
+          return NextResponse.json(
+            { success: false, error: '该任务包没有可领取的任务' },
+            { status: 400 }
+          )
         }
+        throw error
       })
     } else if (session.role === Role.CHECKER) {
       // Checkers claim LABELED tasks
-      const claimableTasks = pkg.tasks.filter(
-        (task: any) => task.status === 'LABELED'
-      )
+      return await prisma.$transaction(async (tx) => {
+        // Get claimable task IDs
+        const claimableTasks = await tx.task.findMany({
+          where: {
+            packageId,
+            status: 'LABELED'
+          },
+          select: { id: true }
+        })
 
-      if (claimableTasks.length === 0) {
-        return NextResponse.json(
-          { success: false, error: '该任务包没有可质检的任务' },
-          { status: 400 }
-        )
-      }
+        if (claimableTasks.length === 0) {
+          throw new Error('NO_CLAIMABLE_TASKS')
+        }
 
-      // Bulk update tasks
-      await prisma.$transaction(async (tx) => {
-        // Update all claimable tasks
+        // Batch update all claimable tasks
         await tx.task.updateMany({
           where: {
-            id: { in: claimableTasks.map((t: any) => t.id) }
+            packageId,
+            status: 'LABELED'
           },
           data: {
             status: 'CHECKING',
@@ -100,26 +112,34 @@ export async function POST(
           }
         })
 
-        // Create operation logs for each task
-        for (const task of claimableTasks) {
-          await tx.operationLog.create({
-            data: {
-              taskId: task.id,
-              userId: session.id,
-              action: 'CLAIM_PACKAGE',
-              details: { packageId: packageId, packageName: pkg.name }
-            }
-          })
-        }
-      })
+        // Create operation logs
+        await tx.operationLog.createMany({
+          data: claimableTasks.map(task => ({
+            taskId: task.id,
+            userId: session.id,
+            action: 'CLAIM_PACKAGE',
+            details: { packageId, packageName: pkg.name }
+          }))
+        })
 
-      return NextResponse.json({
-        success: true,
-        data: {
-          packageId,
-          claimedCount: claimableTasks.length,
-          message: `成功领取 ${claimableTasks.length} 个质检任务`
+        return claimableTasks.length
+      }).then(claimedCount => {
+        return NextResponse.json({
+          success: true,
+          data: {
+            packageId,
+            claimedCount,
+            message: `成功领取 ${claimedCount} 个质检任务`
+          }
+        })
+      }).catch(error => {
+        if (error.message === 'NO_CLAIMABLE_TASKS') {
+          return NextResponse.json(
+            { success: false, error: '该任务包没有可质检的任务' },
+            { status: 400 }
+          )
         }
+        throw error
       })
     } else {
       return NextResponse.json(

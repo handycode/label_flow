@@ -2,8 +2,10 @@
 
 import { type Usable, use, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import Button from '@/components/ui/Button'
 import toast from '@/components/ui/Toast'
 import Pagination from '@/components/Pagination'
+import StatusBadge, { STATUS_OPTIONS } from '@/components/ui/StatusBadge'
 
 interface UserRef { id: string; username: string }
 interface MediaRef { id: string; fileName: string; type: string }
@@ -27,14 +29,16 @@ interface PackageDetail {
 }
 
 const TASKS_PER_PAGE = 20
+const MAX_DISTRIBUTE_COUNT = 200
 
 export default function PackageDetailPage({ params }: { params: Usable<{id: string}> }) {
   const { id } = use(params)
   const [pkg, setPkg] = useState<PackageDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [distributing, setDistributing] = useState(false)
-  const [distributeLimit, setDistributeLimit] = useState(1000)
+  const [distributeLimit, setDistributeLimit] = useState(MAX_DISTRIBUTE_COUNT)
   const [currentPage, setCurrentPage] = useState(1)
+  const [statusFilter, setStatusFilter] = useState<string>('ALL')
 
   const fetchDetail = useCallback(async () => {
     setLoading(true)
@@ -74,18 +78,6 @@ export default function PackageDetailPage({ params }: { params: Usable<{id: stri
     }
   }
 
-  const statusBadge = (status: string) => {
-    const map: Record<string, string> = {
-      PENDING: 'badge-ghost',
-      LABELING: 'badge-info',
-      LABELED: 'badge-warning',
-      CHECKING: 'badge-accent',
-      APPROVED: 'badge-success',
-      REJECTED: 'badge-error',
-    }
-    return map[status] || 'badge-ghost'
-  }
-
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -99,10 +91,11 @@ export default function PackageDetailPage({ params }: { params: Usable<{id: stri
   }
 
   // 分页逻辑
-  const totalPages = Math.ceil(pkg.tasks.length / TASKS_PER_PAGE)
+  const filteredTasks = pkg.tasks.filter(t => statusFilter === 'ALL' || t.status === statusFilter)
+  const totalPages = Math.ceil(filteredTasks.length / TASKS_PER_PAGE)
   const startIndex = (currentPage - 1) * TASKS_PER_PAGE
   const endIndex = startIndex + TASKS_PER_PAGE
-  const currentTasks = pkg.tasks.slice(startIndex, endIndex)
+  const currentTasks = filteredTasks.slice(startIndex, endIndex)
 
   return (
     <div className="space-y-6">
@@ -111,41 +104,55 @@ export default function PackageDetailPage({ params }: { params: Usable<{id: stri
           <h1 className="text-2xl font-bold">{pkg.name}</h1>
           <p className="text-base-content/60">{pkg.description || '暂无描述'}</p>
         </div>
-        <div className="stats shadow ml-2">
-          <div className="stat py-2 px-4">
-            <div className="stat-title">总任务数</div>
-            <div className="stat-value text-lg">{pkg.totalCount}</div>
-          </div>
-        </div>
         <div className="ml-auto mr-2">
-        {pkg.totalCount < 1000 && (
+          {pkg.totalCount < MAX_DISTRIBUTE_COUNT && pkg.status === 'PENDING' && (
           <div className="flex gap-2 items-center">
             <div className="form-control">
               <label className="label py-0">
-                <span className="label-text text-xs">任务数（最多1000）</span>
+                <span className="label-text text-xs">任务数（最多{MAX_DISTRIBUTE_COUNT}）</span>
               </label>
               <input
                 type="number"
                 className="input input-bordered input-sm w-32"
-                value={distributeLimit}
-                onChange={(e) => setDistributeLimit(Math.min(1000, Math.max(1, parseInt(e.target.value) || 1)))}
+                value={Math.min(distributeLimit, MAX_DISTRIBUTE_COUNT - pkg.totalCount)}
+                onChange={(e) => setDistributeLimit(
+                  Math.min(MAX_DISTRIBUTE_COUNT, Math.max(1, parseInt(e.target.value) || 1))
+                )}
                 min="1"
-                max="1000"
+                max={MAX_DISTRIBUTE_COUNT}
               />
             </div>
-            <button
-              className={`btn btn-primary ${distributing ? 'loading' : ''}`}
+            <Button
+              type="primary"
               onClick={distributeAll}
-              disabled={distributing || pkg.totalCount >= 1000}
+              loading={distributing}
+              disabled={pkg.totalCount >= MAX_DISTRIBUTE_COUNT}
+              loadingText="分配中..."
             >
-              {distributing ? '分配中...' : '分配未分配媒体'}
-            </button>
+              分配未分配媒体
+            </Button>
           </div>
-        )}
+          )}
         </div>
         <Link href="/admin/packages" className="btn btn-outline">返回</Link>
       </div>
-
+      <div role="tablist" className="tabs tabs-boxed">
+        {[{ key: 'ALL', label: '全部' }, ...STATUS_OPTIONS].map(({ key, label }) => (
+          <a
+            key={key}
+            role="tab"
+            className={`tab ${statusFilter === key ? 'tab-active' : ''}`}
+            onClick={() => { setStatusFilter(key); setCurrentPage(1) }}
+          >
+            {label}
+            <span className="ml-2 badge badge-sm badge-ghost">
+              {key === 'ALL'
+                ? pkg.tasks.length
+                : pkg.tasks.filter(t => t.status === key).length}
+            </span>
+          </a>
+        ))}
+      </div>
 
 
       <div className="overflow-x-auto">
@@ -156,6 +163,7 @@ export default function PackageDetailPage({ params }: { params: Usable<{id: stri
               <th>状态</th>
               <th>标注员</th>
               <th>质检员</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -163,16 +171,26 @@ export default function PackageDetailPage({ params }: { params: Usable<{id: stri
               <tr key={t.id}>
                 <td className="max-w-sm truncate">{t.media?.fileName}</td>
                 <td>
-                  <span className={`badge ${statusBadge(t.status)}`}>{t.status}</span>
+                  <StatusBadge status={t.status} />
                 </td>
                 <td>{t.labeler?.username || '-'}</td>
                 <td>{t.checker?.username || '-'}</td>
+                <td>
+                  {t.status !== 'PENDING' && (
+                    <Link
+                      href={`/admin/tasks/${t.id}`}
+                      className="btn btn-sm"
+                    >
+                      查看
+                    </Link>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        {pkg.tasks.length === 0 && (
+        {filteredTasks.length === 0 && (
           <div className="text-center py-8 text-base-content/60">
             暂无任务
           </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Pagination from '@/components/Pagination'
+import Button from '@/components/ui/Button'
 import toast from '@/components/ui/Toast'
 
 interface TaskPackage {
@@ -21,6 +22,8 @@ interface TaskPackage {
   rejectedCount?: number;
 }
 
+const MAX_DISTRIBUTE_COUNT = 200
+
 export default function PackagesPage() {
   const [packages, setPackages] = useState<TaskPackage[]>([])
   const [loading, setLoading] = useState(true)
@@ -32,7 +35,7 @@ export default function PackagesPage() {
   const [formName, setFormName] = useState('')
   const [formDesc, setFormDesc] = useState('')
   const [includeUnassigned, setIncludeUnassigned] = useState(true)
-  const [taskCount, setTaskCount] = useState(1000)
+  const [taskCount, setTaskCount] = useState(MAX_DISTRIBUTE_COUNT)
   const [packageCount, setPackageCount] = useState(1)
   const [creating, setCreating] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -217,16 +220,16 @@ export default function PackagesPage() {
                 </div>
               </div>
 
-              <div className="card-actions justify-end mt-4">
-                <Link href={`/admin/packages/${pkg.id}`} className="btn btn-sm btn-outline">
-                  查看详情
-                </Link>
+              <div className="card-actions justify-between mt-4">
                 <button
                   className="btn btn-sm btn-error btn-outline"
                   onClick={() => openDeleteModal(pkg)}
                 >
                   删除
                 </button>
+                <Link href={`/admin/packages/${pkg.id}`} className="btn btn-sm btn-outline">
+                  查看详情
+                </Link>
               </div>
             </div>
           </div>
@@ -298,25 +301,28 @@ export default function PackagesPage() {
             </div>
             {includeUnassigned && (
               <div className="form-control mb-3">
-                <label className="label"><span className="label-text">任务数量（最多1000）</span></label>
+                <label className="label"><span className="label-text">任务数量（最多{MAX_DISTRIBUTE_COUNT}）</span></label>
                 <input
                   type="number"
                   className="input input-bordered"
                   value={taskCount}
-                  onChange={(e) => setTaskCount(Math.min(1000, Math.max(1, parseInt(e.target.value) || 1)))}
+                  onChange={(e) => setTaskCount(
+                    Math.min(MAX_DISTRIBUTE_COUNT, Math.max(1, parseInt(e.target.value) || 1))
+                  )}
                   min="1"
-                  max="1000"
+                  max={MAX_DISTRIBUTE_COUNT}
                 />
               </div>
             )}
             <div className="modal-action">
-              <button
-                className={`btn btn-primary ${creating ? 'loading' : ''}`}
+              <Button
+                type="primary"
                 onClick={createPackage}
-                disabled={creating}
+                loading={creating}
+                loadingText="创建中..."
               >
-                {creating ? '创建中...' : '创建'}
-              </button>
+                创建
+              </Button>
               <button className="btn" onClick={() => setShowCreateModal(false)}>取消</button>
             </div>
           </div>
@@ -329,13 +335,14 @@ export default function PackagesPage() {
             <h3 className="font-bold text-lg">删除任务包</h3>
             <p className="py-4">确认删除任务包「{deleteTarget.name}」？其下所有任务将被一并删除。</p>
             <div className="modal-action">
-              <button
-                className={`btn btn-error ${deleting ? 'loading' : ''}`}
+              <Button
+                type="error"
                 onClick={confirmDelete}
-                disabled={deleting}
+                loading={deleting}
+                loadingText="删除中..."
               >
-                {deleting ? '删除中...' : '确认删除'}
-              </button>
+                确认删除
+              </Button>
               <button className="btn" onClick={() => setShowDeleteModal(false)}>取消</button>
             </div>
           </div>

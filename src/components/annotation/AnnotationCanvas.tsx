@@ -40,6 +40,8 @@ export default function AnnotationCanvas({
   const startPointRef = useRef<{ x: number; y: number } | null>(null)
   const [isVideoLoaded, setIsVideoLoaded] = useState(false)
   const [videoDuration, setVideoDuration] = useState(100)
+  const [scale, setScale] = useState(1)
+  const [hasSelection, setHasSelection] = useState(false)
 
   // 初始化 Fabric Canvas
   useEffect(() => {
@@ -103,6 +105,7 @@ export default function AnnotationCanvas({
 
           canvas.setZoom(1)
           setZoom(1)
+          setScale(scale)
           canvas.renderAll()
         })
         .catch((err) => {
@@ -151,7 +154,7 @@ export default function AnnotationCanvas({
         ;(videoImage as any).isBackground = true
         canvas.add(videoImage)
         canvas.sendObjectToBack(videoImage)
-
+        setScale(scale)
         canvas.setZoom(1)
         setZoom(1)
         canvas.renderAll()
@@ -180,10 +183,10 @@ export default function AnnotationCanvas({
 
       if (ann.type === 'RECT') {
         shape = new fabric.Rect({
-          left: ann.coordinates.x,
-          top: ann.coordinates.y,
-          width: ann.coordinates.width,
-          height: ann.coordinates.height,
+          left: ann.coordinates.x * scale,
+          top: ann.coordinates.y * scale,
+          width: ann.coordinates.width * scale,
+          height: ann.coordinates.height * scale,
           angle: ann.coordinates.rotation || 0,
           fill: 'rgba(59, 130, 246, 0.3)',
           stroke: '#3b82f6',
@@ -192,10 +195,10 @@ export default function AnnotationCanvas({
         })
       } else {
         shape = new fabric.Ellipse({
-          left: ann.coordinates.x,
-          top: ann.coordinates.y,
-          rx: ann.coordinates.width / 2,
-          ry: ann.coordinates.height / 2,
+          left: ann.coordinates.x * scale,
+          top: ann.coordinates.y * scale,
+          rx: (ann.coordinates.width * scale) / 2,
+          ry: (ann.coordinates.height * scale) / 2,
           angle: ann.coordinates.rotation || 0,
           fill: 'rgba(34, 197, 94, 0.3)',
           stroke: '#22c55e',
@@ -209,7 +212,7 @@ export default function AnnotationCanvas({
     })
 
     canvas.renderAll()
-  }, [annotations, readOnly])
+  }, [annotations, readOnly, scale])
 
 
   // 保存标注到父组件
@@ -230,10 +233,10 @@ export default function AnnotationCanvas({
         id: annotationId.startsWith('temp-') ? `ann-${Date.now()}-${Math.random()}` : annotationId,
         type: isRect ? 'RECT' : 'ELLIPSE',
         coordinates: {
-          x: obj.left || 0,
-          y: obj.top || 0,
-          width: isRect ? (obj as fabric.Rect).width || 0 : ((obj as fabric.Ellipse).rx || 0) * 2,
-          height: isRect ? (obj as fabric.Rect).height || 0 : ((obj as fabric.Ellipse).ry || 0) * 2,
+          x: (obj.left || 0) / scale,
+          y: (obj.top || 0) / scale,
+          width: (isRect ? (obj as fabric.Rect).width || 0 : ((obj as fabric.Ellipse).rx || 0) * 2) / scale,
+          height: (isRect ? (obj as fabric.Rect).height || 0 : ((obj as fabric.Ellipse).ry || 0) * 2) / scale,
           rotation: obj.angle || 0,
         },
         frameTime: mediaType === 'VIDEO' ? videoTime : undefined,
@@ -241,7 +244,22 @@ export default function AnnotationCanvas({
     })
 
     onAnnotationsChange(newAnnotations)
-  }, [onAnnotationsChange, readOnly, mediaType, videoTime])
+  }, [onAnnotationsChange, readOnly, mediaType, videoTime, scale])
+
+  // 删除当前选中的标注
+  const deleteSelectedAnnotation = useCallback(() => {
+    if (readOnly || !fabricRef.current) return
+
+    const canvas = fabricRef.current
+    const active = canvas.getActiveObject()
+    if (!active || (active as any).isBackground) return
+
+    canvas.remove(active)
+    canvas.discardActiveObject()
+    setHasSelection(false)
+    canvas.requestRenderAll()
+    saveAnnotations()
+  }, [readOnly, saveAnnotations])
 
   // 处理绘制工具
   useEffect(() => {
@@ -254,6 +272,7 @@ export default function AnnotationCanvas({
       canvas.isDrawingMode = false
       canvas.selection = true
       canvas.forEachObject((obj) => {
+        if ((obj as any).isBackground) return
         obj.selectable = true
         obj.evented = true
       })
@@ -261,6 +280,7 @@ export default function AnnotationCanvas({
       canvas.isDrawingMode = false
       canvas.selection = false
       canvas.forEachObject((obj) => {
+        if ((obj as any).isBackground) return
         obj.selectable = false
         obj.evented = false
       })
@@ -378,6 +398,46 @@ export default function AnnotationCanvas({
     }
   }, [currentTool, saveAnnotations, isDrawing, readOnly, onToolChange])
 
+  // 监听选中对象变化，决定是否可删除
+  useEffect(() => {
+    const canvas = fabricRef.current
+    if (!canvas) return
+
+    const updateSelection = () => {
+      const active = canvas.getActiveObject()
+      const selectable = !!active && !(active as any).isBackground
+      setHasSelection(selectable)
+    }
+
+    const clearSelection = () => setHasSelection(false)
+
+    canvas.on('selection:created', updateSelection)
+    canvas.on('selection:updated', updateSelection)
+    canvas.on('selection:cleared', clearSelection)
+
+    return () => {
+      canvas.off('selection:created', updateSelection)
+      canvas.off('selection:updated', updateSelection)
+      canvas.off('selection:cleared', clearSelection)
+    }
+  }, [])
+
+  // 键盘 Delete/Backspace 删除选中标注（仅编辑模式）
+  useEffect(() => {
+    if (readOnly) return
+
+    const handleKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      if (target && ['INPUT', 'TEXTAREA'].includes(target.tagName)) return
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        deleteSelectedAnnotation()
+      }
+    }
+
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [readOnly, deleteSelectedAnnotation])
+
   // 缩放控制
   const handleZoom = (delta: number) => {
     if (!fabricRef.current) return
@@ -434,6 +494,15 @@ export default function AnnotationCanvas({
         <button className="btn btn-xs" onClick={() => { setZoom(1); fabricRef.current?.setZoom(1) }}>
           重置
         </button>
+        {!readOnly && (
+          <button
+            className="btn btn-xs btn-error"
+            disabled={!hasSelection}
+            onClick={deleteSelectedAnnotation}
+          >
+            删除标注
+          </button>
+        )}
       </div>
 
       {/* 视频控制 (仅视频) */}

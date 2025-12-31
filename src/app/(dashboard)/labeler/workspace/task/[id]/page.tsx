@@ -6,6 +6,7 @@ import AnnotationCanvas from '@/components/annotation/AnnotationCanvas'
 import Toolbar from '@/components/annotation/Toolbar'
 import MetadataPanel from '@/components/annotation/MetadataPanel'
 import toast from '@/components/ui/Toast'
+import Button from '@/components/ui/Button'
 
 interface AnnotationData {
   id: string;
@@ -58,6 +59,10 @@ export default function LabelerTaskPage({ params }: PageProps) {
   const [submitting, setSubmitting] = useState(false)
   const [userRole, setUserRole] = useState<string | null>(null)
   const [isReadOnly, setIsReadOnly] = useState(false)
+
+  const handleDeleteAnnotation = (id: string) => {
+    setAnnotations((prev) => prev.filter((ann) => ann.id !== id))
+  }
 
   const fetchMediaUrl = async (s3Key: string) => {
     try {
@@ -187,8 +192,11 @@ export default function LabelerTaskPage({ params }: PageProps) {
             <h1 className="text-xl font-bold">
               {isReadOnly ? '查看任务' : '标注任务'}: {task.media.fileName}
             </h1>
-            {isReadOnly && (
+            {task.status === 'APPROVED' &&
               <span className="badge badge-success">已通过</span>
+            }
+            {task.status === 'REJECTED' && (
+              <span className="badge badge-error">已驳回</span>
             )}
           </div>
           <p className="text-sm text-base-content/60">
@@ -203,14 +211,16 @@ export default function LabelerTaskPage({ params }: PageProps) {
             返回
           </button>
           {!isReadOnly && (
-            <button
-              className={`btn btn-primary ${submitting ? 'loading' : ''}`}
+            <Button
+              type="primary"
               onClick={handleSubmit}
-              disabled={submitting || annotations.length === 0}
+              loading={submitting}
+              disabled={annotations.length === 0}
+              loadingText="提交中..."
               title={annotations.length === 0 ? '请至少添加一个标注' : ''}
             >
-              {submitting ? '提交中...' : '提交标注'}
-            </button>
+              {task.status === 'REJECTED' ? '重新提交' : '提交标注'}
+            </Button>
           )}
         </div>
       </div>
@@ -234,6 +244,7 @@ export default function LabelerTaskPage({ params }: PageProps) {
             annotations={annotations}
             onAnnotationsChange={isReadOnly ? () => {} : setAnnotations}
             onToolChange={isReadOnly ? () => {} : setCurrentTool}
+            readOnly={isReadOnly}
           />
         </div>
 
@@ -247,6 +258,7 @@ export default function LabelerTaskPage({ params }: PageProps) {
             creator={task.createdBy}
             labeler={task.labeler}
             checker={task.checker}
+            onDeleteAnnotation={isReadOnly ? undefined : handleDeleteAnnotation}
           />
         </div>
       </div>
