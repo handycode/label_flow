@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Pagination from '@/components/Pagination'
 import toast from '@/components/ui/Toast'
+import Button from '@/components/ui/Button'
 
 interface Package {
   id: string;
@@ -95,25 +96,25 @@ export default function CheckerWorkspacePage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">质检工作台</h1>
-        <div className="tabs tabs-boxed">
-          <button
-            className={`tab ${filter === 'my' ? 'tab-active' : ''}`}
+        <div className="tabs">
+          <Button
+            className={`tab  ${filter === 'my' ? 'tab-active' : ''}`}
             onClick={() => {
               setFilter('my')
               setCurrentPage(1)
             }}
           >
             我的质检包
-          </button>
-          <button
-            className={`tab ${filter === 'available' ? 'tab-active' : ''}`}
+          </Button>
+          <Button
+            className={`tab ml-2 ${filter === 'available' ? 'tab-active' : ''}`}
             onClick={() => {
               setFilter('available')
               setCurrentPage(1)
             }}
           >
             待质检任务包
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -165,12 +166,13 @@ export default function CheckerWorkspacePage() {
 
                 <div className="card-actions justify-end mt-4">
                   {filter === 'available' && hasClaimableTasks && (
-                    <button
-                      className="btn btn-primary btn-sm"
+                    <Button
+                      type="primary"
+                      size="small"
                       onClick={() => claimPackage(pkg.id)}
                     >
                       领取质检包
-                    </button>
+                    </Button>
                   )}
                   {filter === 'my' && (
                     <>
@@ -178,12 +180,14 @@ export default function CheckerWorkspacePage() {
                         查看任务列表
                       </Link>
                       {hasWorkingTasks && (
-                        <button
-                          className="btn btn-primary btn-sm"
+                        <Button
+                          type="primary"
+                          size="small"
+                          className="ml-auto"
                           onClick={() => getFirstTask(pkg.id)}
                         >
-                          继续质检
-                        </button>
+                          去质检
+                        </Button>
                       )}
                     </>
                   )}

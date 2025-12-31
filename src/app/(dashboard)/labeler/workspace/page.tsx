@@ -142,16 +142,6 @@ export default function LabelerWorkspacePage() {
                     <div className="stat-title text-xs">任务总数</div>
                     <div className="stat-value text-2xl">{pkg._count.tasks}</div>
                   </div>
-                  {filter === 'available' && (
-                    <>
-                      <div className="stat py-2">
-                        <div className="stat-title text-xs">待领取</div>
-                        <div className="stat-value text-2xl text-warning">
-                          {(pkg.pendingCount || 0) + (pkg.rejectedCount || 0)}
-                        </div>
-                      </div>
-                    </>
-                  )}
                   {filter === 'my' && (
                     <>
                       <div className="stat py-2">

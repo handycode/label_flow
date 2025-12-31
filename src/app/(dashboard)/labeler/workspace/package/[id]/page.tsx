@@ -81,7 +81,7 @@ export default function PackageTaskListPage({ params }: { params: Usable<{ id: s
   const statusBadge = (status: string) => {
     const map: Record<string, { class: string; text: string }> = {
       PENDING: { class: 'badge-ghost', text: '待领取' },
-      LABELING: { class: 'badge-info', text: '标注中' },
+      LABELING: { class: 'badge-info', text: '待标注' },
       LABELED: { class: 'badge-warning', text: '已标注' },
       CHECKING: { class: 'badge-accent', text: '质检中' },
       APPROVED: { class: 'badge-success', text: '已通过' },
@@ -126,11 +126,7 @@ export default function PackageTaskListPage({ params }: { params: Usable<{ id: s
           <div className="stat-value text-2xl">{pkg.totalCount}</div>
         </div>
         <div className="stat">
-          <div className="stat-title">待领取</div>
-          <div className="stat-value text-2xl text-ghost">{pkg.pendingCount || 0}</div>
-        </div>
-        <div className="stat">
-          <div className="stat-title">标注中</div>
+          <div className="stat-title">待标注</div>
           <div className="stat-value text-2xl text-info">{pkg.labelingCount || 0}</div>
         </div>
         <div className="stat">
@@ -162,7 +158,7 @@ export default function PackageTaskListPage({ params }: { params: Usable<{ id: s
                 className={`tab tab-sm ${statusFilter === 'LABELING' ? 'tab-active' : ''}`}
                 onClick={() => { setStatusFilter('LABELING'); setCurrentPage(1) }}
               >
-                标注中
+                待标注
               </button>
               <button
                 className={`tab tab-sm ${statusFilter === 'LABELED' ? 'tab-active' : ''}`}
@@ -233,6 +229,7 @@ export default function PackageTaskListPage({ params }: { params: Usable<{ id: s
                           onClick={() => handleTaskClick(task.id)}
                           disabled={
                             task.status !== 'LABELING' &&
+                            task.status !== 'CHECKING' &&
                             task.status !== 'REJECTED' &&
                             task.status !== 'APPROVED'
                           }
