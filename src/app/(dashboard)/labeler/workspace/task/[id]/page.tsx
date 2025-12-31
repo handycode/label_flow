@@ -237,6 +237,7 @@ export default function LabelerTaskPage({ params }: PageProps) {
             annotations={annotations}
             onAnnotationsChange={isReadOnly ? () => {} : setAnnotations}
             onToolChange={isReadOnly ? () => {} : setCurrentTool}
+            readOnly={isReadOnly}
           />
         </div>
 

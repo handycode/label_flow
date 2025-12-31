@@ -40,6 +40,7 @@ export default function AnnotationCanvas({
   const startPointRef = useRef<{ x: number; y: number } | null>(null)
   const [isVideoLoaded, setIsVideoLoaded] = useState(false)
   const [videoDuration, setVideoDuration] = useState(100)
+  const [scale, setScale] = useState(1)
 
   // 初始化 Fabric Canvas
   useEffect(() => {
@@ -103,6 +104,7 @@ export default function AnnotationCanvas({
 
           canvas.setZoom(1)
           setZoom(1)
+          setScale(scale)
           canvas.renderAll()
         })
         .catch((err) => {
@@ -151,7 +153,7 @@ export default function AnnotationCanvas({
         ;(videoImage as any).isBackground = true
         canvas.add(videoImage)
         canvas.sendObjectToBack(videoImage)
-
+        setScale(scale)
         canvas.setZoom(1)
         setZoom(1)
         canvas.renderAll()
@@ -180,10 +182,10 @@ export default function AnnotationCanvas({
 
       if (ann.type === 'RECT') {
         shape = new fabric.Rect({
-          left: ann.coordinates.x,
-          top: ann.coordinates.y,
-          width: ann.coordinates.width,
-          height: ann.coordinates.height,
+          left: ann.coordinates.x * scale,
+          top: ann.coordinates.y * scale,
+          width: ann.coordinates.width * scale,
+          height: ann.coordinates.height * scale,
           angle: ann.coordinates.rotation || 0,
           fill: 'rgba(59, 130, 246, 0.3)',
           stroke: '#3b82f6',
@@ -192,10 +194,10 @@ export default function AnnotationCanvas({
         })
       } else {
         shape = new fabric.Ellipse({
-          left: ann.coordinates.x,
-          top: ann.coordinates.y,
-          rx: ann.coordinates.width / 2,
-          ry: ann.coordinates.height / 2,
+          left: ann.coordinates.x * scale,
+          top: ann.coordinates.y * scale,
+          rx: (ann.coordinates.width * scale) / 2,
+          ry: (ann.coordinates.height * scale) / 2,
           angle: ann.coordinates.rotation || 0,
           fill: 'rgba(34, 197, 94, 0.3)',
           stroke: '#22c55e',
@@ -209,7 +211,7 @@ export default function AnnotationCanvas({
     })
 
     canvas.renderAll()
-  }, [annotations, readOnly])
+  }, [annotations, readOnly, scale])
 
 
   // 保存标注到父组件
@@ -230,10 +232,10 @@ export default function AnnotationCanvas({
         id: annotationId.startsWith('temp-') ? `ann-${Date.now()}-${Math.random()}` : annotationId,
         type: isRect ? 'RECT' : 'ELLIPSE',
         coordinates: {
-          x: obj.left || 0,
-          y: obj.top || 0,
-          width: isRect ? (obj as fabric.Rect).width || 0 : ((obj as fabric.Ellipse).rx || 0) * 2,
-          height: isRect ? (obj as fabric.Rect).height || 0 : ((obj as fabric.Ellipse).ry || 0) * 2,
+          x: (obj.left || 0) / scale,
+          y: (obj.top || 0) / scale,
+          width: (isRect ? (obj as fabric.Rect).width || 0 : ((obj as fabric.Ellipse).rx || 0) * 2) / scale,
+          height: (isRect ? (obj as fabric.Rect).height || 0 : ((obj as fabric.Ellipse).ry || 0) * 2) / scale,
           rotation: obj.angle || 0,
         },
         frameTime: mediaType === 'VIDEO' ? videoTime : undefined,
@@ -241,7 +243,7 @@ export default function AnnotationCanvas({
     })
 
     onAnnotationsChange(newAnnotations)
-  }, [onAnnotationsChange, readOnly, mediaType, videoTime])
+  }, [onAnnotationsChange, readOnly, mediaType, videoTime, scale])
 
   // 处理绘制工具
   useEffect(() => {
