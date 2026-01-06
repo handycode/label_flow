@@ -1244,7 +1244,9 @@ describe('AnnotationCanvas component', () => {
     )
 
     const canvasInstance: any = (fabric.Canvas as unknown as jest.Mock).mock.results.at(-1)?.value
-    const obj = { type: 'rect', annotationId: '1', left: 10, top: 20, width: 50, height: 50, angle: 0, getBoundingRect: jest.fn() }
+    const obj = {
+      type: 'rect', annotationId: '1', left: 10, top: 20, width: 50, height: 50, angle: 0, getBoundingRect: jest.fn()
+    }
     canvasInstance.add(obj)
 
     await act(async () => {
@@ -1696,7 +1698,9 @@ describe('AnnotationCanvas component', () => {
 
     const canvasInstance: any = (fabric.Canvas as unknown as jest.Mock).mock.results.at(-1)?.value
     // Add object without annotationId (like background)
-    const objWithoutId = { type: 'rect', left: 10, top: 20, width: 50, height: 50, angle: 0, getBoundingRect: jest.fn() }
+    const objWithoutId = {
+      type: 'rect', left: 10, top: 20, width: 50, height: 50, angle: 0, getBoundingRect: jest.fn()
+    }
     canvasInstance.add(objWithoutId)
 
     await act(async () => {
