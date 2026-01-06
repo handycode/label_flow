@@ -12,6 +12,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint --fix ./src/**/*.{ts,tsx}",
+    "test": "jest --coverage",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
@@ -46,6 +47,10 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",
     "@types/bcryptjs": "^2.4.6",
+    "@testing-library/jest-dom": "^6.7.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
     "@types/fabric": "^5.3.10",
     "@types/node": "^24.10.1",
     "@types/pg": "^8.16.0",
@@ -59,6 +64,8 @@
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.18",
     "tsx": "^4.21.0",
+    "jest": "^30.0.5",
+    "jest-environment-jsdom": "^30.0.5",
     "typescript": "^5.9.3"
   }
 }
