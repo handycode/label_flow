@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { RoleName, type SessionUser } from '@/types'
 import { cn } from '@/lib/utils'
-import { UserCircle2Icon } from "lucide-react"
+import { UserCircle2Icon } from 'lucide-react'
 
 interface Props {
   user: SessionUser;

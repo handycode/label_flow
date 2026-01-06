@@ -24,4 +24,16 @@ describe('cn', () => {
   it('should handle null and undefined objects', () => {
     expect(cn('class1', null, undefined, 'class2')).toBe('class1 class2')
   })
+
+  it('should handle number inputs', () => {
+    expect(cn('class1', 123, 'class2')).toBe('class1 123 class2')
+  })
+
+  it('should handle number zero', () => {
+    expect(cn('class1', 0, 'class2')).toBe('class1 class2')
+  })
+
+  it('should convert numbers to strings', () => {
+    expect(cn(100, 200, 300)).toBe('100 200 300')
+  })
 })

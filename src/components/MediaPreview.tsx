@@ -84,17 +84,13 @@ export const MediaPreview: React.FC<{ children: React.ReactNode }> = ({ children
   const prefetchVideo = (id: string) => {
     if (!id) return
     if (cacheRef.current.has(id)) return
-    try {
-      const video = document.createElement('video')
-      video.preload = 'auto'
-      video.oncanplaythrough = () => {
-        cacheRef.current.set(id, video.src)
-        if (current?.id === id) setIsCurrentLoaded(true)
-      }
-      video.src = getUrl(id)
-    } catch (_e) {
-      // best-effort prefetch; ignore errors
+    const video = document.createElement('video')
+    video.preload = 'auto'
+    video.oncanplaythrough = () => {
+      cacheRef.current.set(id, video.src)
+      if (current?.id === id) setIsCurrentLoaded(true)
     }
+    video.src = getUrl(id)
   }
 
   // when current changes, reset loading and attempt to use cache immediately
@@ -142,7 +138,9 @@ export const MediaPreview: React.FC<{ children: React.ReactNode }> = ({ children
                 </div>
               </div>
 
-              <div className="bg-black flex items-center justify-center relative" style={{ minHeight: 400 }}>
+              <div className="media-container bg-black flex items-center justify-center relative"
+                style={{ minHeight: 400 }}
+              >
                 {!isCurrentLoaded && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="flex items-center gap-2 text-white">

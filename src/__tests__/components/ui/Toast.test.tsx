@@ -521,4 +521,115 @@ describe('ToastContainer', () => {
       expect(maskElement).toHaveStyle({ zIndex: '9998' })
     })
   })
+
+  it('should render fail type toast', () => {
+    render(<ToastContainer />)
+
+    act(() => {
+      toast.error('Failed message')
+    })
+
+    const alert = screen.getByRole('alert')
+    expect(alert).toHaveClass('alert-error')
+  })
+
+  it('should persist toast when autoClose is false', async () => {
+    render(<ToastContainer />)
+
+    act(() => {
+      toast.show('Persistent message', { autoClose: false })
+    })
+
+    const alert = screen.getByRole('alert')
+    expect(alert).toBeInTheDocument()
+
+    await new Promise(resolve => setTimeout(resolve, 3500))
+    expect(alert).toBeInTheDocument()
+  })
+
+  it('should not render close button when autoClose is false', () => {
+    render(<ToastContainer />)
+
+    act(() => {
+      toast.show('Message with close button', { autoClose: false })
+    })
+
+    const closeIcon = document.querySelector('.cursor-pointer')
+    expect(closeIcon).not.toBeInTheDocument()
+  })
+
+  it('should call onClick handler when toast is clicked', async () => {
+    const mockOnClick = jest.fn()
+    render(<ToastContainer />)
+
+    act(() => {
+      toast.show('Clickable message', { onClick: mockOnClick })
+    })
+
+    const alert = screen.getByRole('alert')
+    await act(async () => {
+      await userEvent.click(alert)
+    })
+    expect(mockOnClick).toHaveBeenCalled()
+  })
+
+  it('should remove toast when clicked with clickToClose', async () => {
+    render(<ToastContainer />)
+
+    act(() => {
+      toast.show('Click to close', { clickToClose: true })
+    })
+
+    const alert = screen.getByRole('alert')
+    await act(async () => {
+      await userEvent.click(alert)
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+  })
+
+  it('should handle both onClick and clickToClose', async () => {
+    const mockOnClick = jest.fn()
+    render(<ToastContainer />)
+
+    act(() => {
+      toast.show('Combined behavior', {
+        onClick: mockOnClick,
+        clickToClose: true
+      })
+    })
+
+    const alert = screen.getByRole('alert')
+    await act(async () => {
+      await userEvent.click(alert)
+    })
+
+    expect(mockOnClick).toHaveBeenCalled()
+    await waitFor(() => {
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+  })
+
+  it('should close toast when close button is clicked (autoClose=0)', async () => {
+    render(<ToastContainer />)
+
+    act(() => {
+      toast.show('Message with close', { autoClose: 0 })
+    })
+
+    const closeIcon = document.querySelector('.cursor-pointer') as HTMLElement | null
+    expect(closeIcon).toBeInTheDocument()
+
+    if (closeIcon) {
+      await act(async () => {
+        await userEvent.click(closeIcon)
+      })
+    }
+
+    await waitFor(() => {
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+  })
 })
