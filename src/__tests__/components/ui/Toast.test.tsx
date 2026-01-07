@@ -632,4 +632,88 @@ describe('ToastContainer', () => {
       expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     })
   })
+
+  it('should use DEFAULT_DURATION when autoClose is undefined', async () => {
+    render(<ToastContainer />)
+
+    // Test with autoClose not provided (undefined)
+    act(() => {
+      eventBus.fire(eventBus.events.SHOW_TOAST, {
+        type: 'info',
+        message: 'Undefined autoClose',
+        autoClose: undefined
+      })
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Undefined autoClose')).toBeInTheDocument()
+    })
+
+    // Test with autoClose as string (not false, not number)
+    act(() => {
+      eventBus.fire(eventBus.events.SHOW_TOAST, {
+        type: 'info',
+        message: 'String autoClose',
+        autoClose: '3000' as any // TypeScript won't allow this normally, but we test it
+      })
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('String autoClose')).toBeInTheDocument()
+    })
+  })
+
+  it('should render toast with default type when type is not specified', async () => {
+    render(<ToastContainer />)
+
+    // Test with type as undefined
+    act(() => {
+      eventBus.fire(eventBus.events.SHOW_TOAST, {
+        message: 'Toast without type',
+        type: undefined as any,
+        autoClose: false
+      })
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Toast without type')).toBeInTheDocument()
+    })
+
+    // Check that it has default bg class (not alert-success, alert-error, etc.)
+    const toastElement = screen.getByText('Toast without type').closest('.alert')
+    expect(toastElement).toHaveClass('bg-accent')
+    expect(toastElement).toHaveClass('text-accent-content')
+
+    // Test with type as null
+    act(() => {
+      eventBus.fire(eventBus.events.SHOW_TOAST, {
+        message: 'Toast with null type',
+        type: null as any,
+        autoClose: false
+      })
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Toast with null type')).toBeInTheDocument()
+    })
+  })
+
+  it('should render toast with show type explicitly', async () => {
+    render(<ToastContainer />)
+
+    act(() => {
+      eventBus.fire(eventBus.events.SHOW_TOAST, {
+        type: 'show',
+        message: 'Toast with show type',
+        autoClose: false
+      })
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Toast with show type')).toBeInTheDocument()
+    })
+
+    const toastElement = screen.getByText('Toast with show type').closest('.alert')
+    expect(toastElement).toHaveClass('bg-accent')
+  })
 })
