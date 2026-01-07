@@ -132,4 +132,14 @@ describe('OnFire', () => {
 
     expect(callback).toHaveBeenCalledWith('hello')
   })
+
+  it('should handle off() with specific callback on non-existent event', () => {
+    const callback = jest.fn()
+
+    // This should not throw when removing a callback from a non-existent event
+    // Tests the branch: const listeners = this.es[eventName] || []
+    eventEmitter.off('nonExistentEvent', callback)
+
+    expect(true).toBe(true)
+  })
 })
