@@ -1,4 +1,4 @@
-import { hasAllPermissions, hasAnyPermission, hasPermission, getPermissions } from '@/lib/auth/rbac'
+import { getPermissions, hasAllPermissions, hasAnyPermission, hasPermission } from '@/lib/auth/rbac'
 import { Role } from '@/types'
 
 describe('rbac helpers', () => {

@@ -153,7 +153,7 @@ describe('PATCH /api/users/[id]', () => {
       }),
     })
     const response = await PATCH(request, { params: Promise.resolve({ id: 'user-1' }) })
-    const data = await response.json()
+    await response.json()
 
     expect(response.status).toBe(200)
     expect(hashPassword).toHaveBeenCalledWith('newpassword123')
@@ -178,7 +178,7 @@ describe('PATCH /api/users/[id]', () => {
       body: JSON.stringify({ status: 'DISABLED' }),
     })
     const response = await PATCH(request, { params: Promise.resolve({ id: 'user-1' }) })
-    const data = await response.json()
+    await response.json()
 
     expect(response.status).toBe(200)
     expect(prisma.user.update).toHaveBeenCalledWith(

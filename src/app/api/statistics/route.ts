@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
-import { Role } from '@/types'
 
 // GET /api/statistics/overview - 获取统计概览
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
-    const session = await requireAuth()
+    await requireAuth()
 
     const [
       totalTasks,

@@ -83,7 +83,7 @@ describe('GET /api/packages', () => {
 
     const request = new NextRequest('http://localhost/api/packages?filter=available')
     const response = await GET(request)
-    const data = await response.json()
+    await response.json()
 
     expect(response.status).toBe(200)
     expect(prisma.taskPackage.findMany).toHaveBeenCalledWith(
@@ -110,7 +110,7 @@ describe('GET /api/packages', () => {
 
     const request = new NextRequest('http://localhost/api/packages?filter=my')
     const response = await GET(request)
-    const data = await response.json()
+    await response.json()
 
     expect(response.status).toBe(200)
     expect(prisma.taskPackage.findMany).toHaveBeenCalledWith(
@@ -162,7 +162,7 @@ describe('GET /api/packages', () => {
 
     const request = new NextRequest('http://localhost/api/packages?status=ACTIVE')
     const response = await GET(request)
-    const data = await response.json()
+    await response.json()
 
     expect(response.status).toBe(200)
     expect(prisma.taskPackage.findMany).toHaveBeenCalledWith(
@@ -185,7 +185,7 @@ describe('GET /api/packages', () => {
 
     const request = new NextRequest('http://localhost/api/packages?filter=available')
     const response = await GET(request)
-    const data = await response.json()
+    await response.json()
 
     expect(response.status).toBe(200)
     expect(prisma.taskPackage.findMany).toHaveBeenCalledWith(
@@ -212,7 +212,7 @@ describe('GET /api/packages', () => {
 
     const request = new NextRequest('http://localhost/api/packages?filter=my')
     const response = await GET(request)
-    const data = await response.json()
+    await response.json()
 
     expect(response.status).toBe(200)
     expect(prisma.taskPackage.findMany).toHaveBeenCalledWith(

@@ -82,7 +82,7 @@ describe('GET /api/media', () => {
 
     const request = new NextRequest('http://localhost/api/media?type=IMAGE')
     const response = await GET(request)
-    const data = await response.json()
+    await response.json()
 
     expect(response.status).toBe(200)
     expect(prisma.mediaResource.findMany).toHaveBeenCalledWith(
@@ -104,7 +104,7 @@ describe('GET /api/media', () => {
 
     const request = new NextRequest('http://localhost/api/media?unassigned=true')
     const response = await GET(request)
-    const data = await response.json()
+    await response.json()
 
     expect(response.status).toBe(200)
     expect(prisma.mediaResource.findMany).toHaveBeenCalledWith(

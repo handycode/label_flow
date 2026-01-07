@@ -2,7 +2,7 @@ import { DEFAULT_POSITION, initialState, toastReducer } from '@/components/ui/to
 
 describe('toastReducer', () => {
   it('should return the initial state', () => {
-    // @ts-ignore - Testing default case
+    // @ts-expect-error - Testing default case
     expect(toastReducer(initialState, {})).toEqual(initialState)
   })
 

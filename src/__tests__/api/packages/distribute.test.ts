@@ -170,7 +170,7 @@ describe('POST /api/packages/[id]/distribute', () => {
       body: JSON.stringify({ limit: 2 }),
     })
     const response = await POST(request, { params: Promise.resolve({ id: 'pkg-1' }) })
-    const data = await response.json()
+    await response.json()
 
     expect(response.status).toBe(200)
     expect(prisma.mediaResource.findMany).toHaveBeenCalledWith(

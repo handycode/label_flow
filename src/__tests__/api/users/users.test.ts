@@ -84,7 +84,7 @@ describe('GET /api/users', () => {
 
     const request = new NextRequest('http://localhost/api/users?role=LABELER')
     const response = await GET(request)
-    const data = await response.json()
+    await response.json()
 
     expect(response.status).toBe(200)
     expect(prisma.user.findMany).toHaveBeenCalledWith(
@@ -106,7 +106,7 @@ describe('GET /api/users', () => {
 
     const request = new NextRequest('http://localhost/api/users?status=ACTIVE')
     const response = await GET(request)
-    const data = await response.json()
+    await response.json()
 
     expect(response.status).toBe(200)
     expect(prisma.user.findMany).toHaveBeenCalledWith(
@@ -128,7 +128,7 @@ describe('GET /api/users', () => {
 
     const request = new NextRequest('http://localhost/api/users?search=test')
     const response = await GET(request)
-    const data = await response.json()
+    await response.json()
 
     expect(response.status).toBe(200)
     expect(prisma.user.findMany).toHaveBeenCalledWith(
